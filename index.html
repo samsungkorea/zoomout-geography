@@ -62,6 +62,7 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,3.2vw,38px);l
 .map-wrap{position:relative;width:min(100cqw,100cqh);height:min(100cqw,100cqh);isolation:isolate;z-index:0}
 .map-box{position:absolute;inset:0;border-radius:6px;overflow:hidden;background:var(--map-bg)}
 .map-layer{position:absolute;inset:0;z-index:1;isolation:isolate;pointer-events:none;transition:opacity .7s ease,filter .7s ease,transform 1.1s cubic-bezier(.2,.7,.2,1)}
+body.practice .map-layer:not(.off){pointer-events:auto}
 .map-layer.off{opacity:0;filter:blur(12px);transform:scale(1.05)}
 .map-layer .leaflet-container{width:100%;height:100%;background:var(--map-bg)}
 .leaflet-control-attribution{font-size:10px!important;background:rgba(0,0,0,.45)!important;color:#d8dee3!important;pointer-events:none}
@@ -309,7 +310,7 @@ footer{grid-area:foot;display:flex;align-items:center;justify-content:space-betw
         <li>라벨 없는 위성 사진이 한 장 나와요. 퀴즈 모드에서는 지도가 움직이지 않아요.</li>
         <li>어느 도시인지 영어나 한글로 입력하고 Enter를 누르세요. 악센트와 한두 글자 오타는 봐줘요.</li>
         <li>막히면 Hint를 누르세요. 첫 번째는 나라, 두 번째는 첫 글자를 알려줘요.</li>
-        <li>Practice 모드는 문제 수 제한이 없고, 정답을 본 뒤 지도를 확대·축소해 주변을 살펴볼 수 있어요.</li>
+        <li>Practice 모드는 문제 수 제한이 없고, 두 손가락으로 지도를 벌리거나 오므려 확대·축소할 수 있어요.</li>
         <li>한 세트가 끝나면 틀린 도시만 골라 복습할 수 있어요. 로그인하면 기록 탭에 결과가 쌓여요.</li>
       </ol>
     </div>
@@ -497,7 +498,7 @@ async function fetchRemote(id){
   return raw?JSON.parse(raw):{games:[],cities:{}};
 }
 async function pushRemote(id,p){
-  const data=JSON.stringify({games:p.games,cities:p.cities,created:p.created});
+  p.cities={};const data=JSON.stringify({games:p.games,cities:{},created:p.created});
   const r=await fetch(docUrl(id),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fields:{data:{stringValue:data},updatedAt:{timestampValue:new Date().toISOString()}}})});
   if(!r.ok)throw new Error("HTTP "+r.status);
 }
@@ -552,11 +553,14 @@ const profile=()=>me?users[me]:null;
 
 /* ---------- Maps (two layers, crossfaded) ---------- */
 const ESRI="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const ZOOM_HANDLERS=["touchZoom","scrollWheelZoom","doubleClickZoom"];
+function setPinch(on){maps.forEach(m=>ZOOM_HANDLERS.forEach(h=>on?m[h].enable():m[h].disable()))}
 function makeMap(el){
-  const m=L.map(el,{dragging:false,touchZoom:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,zoomControl:false,zoomSnap:0.25,inertia:false,fadeAnimation:true});
+  const m=L.map(el,{dragging:false,touchZoom:"center",scrollWheelZoom:"center",doubleClickZoom:"center",boxZoom:false,keyboard:false,zoomControl:false,zoomSnap:0.25,inertia:false,fadeAnimation:true});
   L.tileLayer(ESRI,{maxZoom:19,maxNativeZoom:19,detectRetina:true,attribution:"Imagery © Esri, Maxar, Earthstar Geographics"}).addTo(m);
   m.attributionControl.setPrefix(false);
   m.setView([20,0],2,{animate:false});
+  ZOOM_HANDLERS.forEach(h=>m[h].disable());
   return m;
 }
 const layers=[$("layerA"),$("layerB")];
@@ -603,7 +607,7 @@ function startGame(kind,list){
   if(!list.length){openScope();return}
   if(kind!=="practice")mode="quiz";
   st={kind,queue:list,idx:0,correct:0,answered:0,hint:0,history:[],busy:false,done:false,hintsUsed:0,scope:kind==="review"?"복습":scopeLabel(settings.regions)};
-  document.body.classList.toggle("practice",kind==="practice");
+  document.body.classList.toggle("practice",kind==="practice");setPinch(kind==="practice");
   $("history").innerHTML="";$("reveal").classList.remove("show");
   active=0;place(0,list[0]);place(1,list[1]);
   layers[0].classList.remove("off");layers[1].classList.add("off");
@@ -649,7 +653,6 @@ function answer(passed){
   st.busy=true;st.answered++;if(ok)st.correct++;if(st.hint)st.hintsUsed++;
   const item={n:st.idx+1,guess:passed?"":val,city,ok,hinted:st.hint>0,passed};
   st.history.push(item);
-  if(st.kind!=="practice")recordCity(city,ok);
   $("answerBox").classList.add(ok?"ok":"bad");inp.value="";
   $("passBtn").disabled=true;$("hintBtn").disabled=true;
   addHistory(item);renderTop();
@@ -736,11 +739,18 @@ function confetti(){
 }
 
 /* ---------- Records ---------- */
+/* 자주 틀린 도시는 '끝낸 세트' 기록에서만 계산 (세트를 지우면 함께 사라짐) */
 function weakCities(){
   const p=profile();if(!p)return[];
-  return Object.entries(p.cities).filter(([en,s])=>CITY_BY_EN[en]&&s.s-s.c>0)
-    .sort((a,b)=>(b[1].s-b[1].c)-(a[1].s-a[1].c)||(a[1].c/a[1].s)-(b[1].c/b[1].s))
-    .map(([en,s])=>({city:CITY_BY_EN[en],wrong:s.s-s.c,seen:s.s}));
+  const agg={};
+  p.games.forEach(g=>{
+    const miss={};(g.missed||[]).forEach(en=>miss[en]=(miss[en]||0)+1);
+    const all=g.all||g.missed||[];
+    all.forEach(en=>{const a=agg[en]||(agg[en]={s:0,w:0});a.s++;if(miss[en]){a.w++;miss[en]--}});
+  });
+  return Object.entries(agg).filter(([en,a])=>CITY_BY_EN[en]&&a.w>0)
+    .sort((a,b)=>b[1].w-a[1].w||(b[1].w/b[1].s)-(a[1].w/a[1].s))
+    .map(([en,a])=>({city:CITY_BY_EN[en],wrong:a.w,seen:a.s}));
 }
 function fmtDate(t){const d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
 function openRecords(){
@@ -778,7 +788,7 @@ $("recBody").addEventListener("click",e=>{
   if(d){
     const t=+d.dataset.del,g=p.games.find(x=>x.t===t);if(!g)return;
     confirmM(fmtDate(g.t)+" "+g.scope+" 세트 ("+g.correct+" / "+g.total+") 기록을 삭제해요. 되돌릴 수 없어요.","삭제",()=>{
-      removeGameStats(p,g);p.games=p.games.filter(x=>x.t!==t);saveUsers();openRecords();
+      p.games=p.games.filter(x=>x.t!==t);saveUsers();openRecords();
     });
   }else if(e.target.closest("#delAll")){
     confirmM(me+"님의 세트 기록 "+p.games.length+"개와 자주 틀린 도시 통계를 모두 삭제해요. 되돌릴 수 없어요.","모두 삭제",()=>{
