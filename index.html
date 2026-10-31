@@ -263,6 +263,12 @@ body.browsing #reveal{opacity:0}
 .city-list li{align-items:center}
 .list-row{flex:1;min-width:0;display:flex;justify-content:space-between;align-items:baseline;gap:12px;border:0;background:none;padding:2px 0;text-align:left;font-size:15px}
 .list-row:hover b{text-decoration:underline;text-underline-offset:3px}
+.google-btn{width:100%;border:1.5px solid var(--ink);background:var(--surface);color:var(--ink);border-radius:999px;padding:12px 18px;font-size:17px;font-weight:700;box-shadow:3px 3px 0 var(--ink);transition:transform .12s,box-shadow .12s}
+.google-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.acct{display:flex;align-items:center;gap:12px;color:var(--ink)}
+.acct img{width:40px;height:40px;border-radius:50%;flex:none}
+.acct span{font-size:14px;line-height:1.4;color:var(--muted)}
+.acct b{color:var(--ink);font-size:16px}
 #confetti{position:fixed;inset:0;width:100%;height:100%;z-index:6000;pointer-events:none;display:none}
 #confetti.on{display:block}
 
@@ -328,14 +334,27 @@ body.browsing #reveal{opacity:0}
 <!-- Login -->
 <div class="scrim" id="loginScrim" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
   <div class="sheet small">
-    <div class="sheet-head"><h2 id="loginTitle">아이디로 시작하기</h2><button class="x" id="loginX" aria-label="닫기">×</button></div>
+    <div class="sheet-head"><h2 id="loginTitle">로그인</h2><button class="x" id="loginX" aria-label="닫기">×</button></div>
     <div class="sheet-body">
-      <p class="muted" style="margin-top:0">비밀번호 없이 아이디만 입력하면 돼요. 기록은 서버에 저장돼서 다른 기기에서도 같은 아이디로 이어져요. 비밀번호가 없으니 아이디를 아는 사람은 기록을 볼 수 있어요.</p>
-      <input class="login-input" id="loginId" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" placeholder="아이디" aria-label="아이디">
+      <p class="muted" style="margin-top:0">Google 계정으로 로그인하면 기록, 즐겨찾기, 메모가 저장되고 다른 기기에서도 이어져요. 내 기록은 나만 볼 수 있어요.</p>
+      <button class="google-btn" id="googleBtn">Google로 계속하기</button>
       <p class="muted login-msg" id="loginMsg"></p>
-      <div class="known" id="knownIds"></div>
     </div>
-    <div class="sheet-foot"><button class="toggle-all" id="guestBtn">로그인 없이 하기</button><button class="primary" id="loginBtn">시작하기</button></div>
+    <div class="sheet-foot"><button class="toggle-all" id="guestBtn">로그인 없이 하기</button></div>
+  </div>
+</div>
+
+<!-- 예전 기록 가져오기 -->
+<div class="scrim" id="migScrim" role="dialog" aria-modal="true" aria-labelledby="migTitle">
+  <div class="sheet small">
+    <div class="sheet-head"><h2 id="migTitle">예전 기록 가져오기</h2></div>
+    <div class="sheet-body">
+      <p class="muted" style="margin-top:0">예전에 아이디로 쓰던 기록이 있다면 이 Google 계정으로 가져올 수 있어요. 세트 기록, 즐겨찾기, 메모가 합쳐져요.</p>
+      <input class="login-input" id="migId" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" placeholder="예전 아이디" aria-label="예전 아이디">
+      <p class="muted login-msg" id="migMsg"></p>
+      <div class="known" id="migKnown"></div>
+    </div>
+    <div class="sheet-foot"><button class="toggle-all" id="migSkip">건너뛰기</button><button class="primary" id="migDo">가져오기</button></div>
   </div>
 </div>
 
@@ -375,8 +394,9 @@ body.browsing #reveal{opacity:0}
         </div>
       </div>
       <div class="group">
-        <div class="group-head"><h3>계정</h3><button class="toggle-all" id="setSwitch">아이디 바꾸기</button></div>
+        <div class="group-head"><h3>계정</h3><button class="toggle-all" id="setSwitch">로그인</button></div>
         <p class="muted" id="setAccount" style="margin:0"></p>
+        <button class="toggle-all" id="setMigrate" style="margin-top:8px" hidden>예전 아이디 기록 가져오기</button>
       </div>
       <div class="group">
         <div class="group-head"><h3>이렇게 플레이해요</h3></div>
@@ -593,24 +613,39 @@ const store={
   get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 };
-let users=store.get("mq-users",{});if(!users||typeof users!=="object")users={};
-let me=store.get("mq-me",null);if(me&&!users[me])me=null;
-const saveLocal=()=>store.set("mq-users",users);
+/* 예전 아이디 방식 기록 (가져오기용, 읽기만) */
+let legacyUsers=store.get("mq-users",{});if(!legacyUsers||typeof legacyUsers!=="object")legacyUsers={};
+const legacyMe=store.get("mq-me",null);
+/* Google 계정별 기록 (uid 기준) */
+let users=store.get("mq-accounts",{});if(!users||typeof users!=="object")users={};
+let me=store.get("mq-uid",null);if(me&&!users[me])me=null;
+let meInfo=me?users[me].info||null:null;
+const meName=()=>meInfo&&meInfo.name?meInfo.name:"내";
+const saveLocal=()=>store.set("mq-accounts",users);
 const saveUsers=()=>{saveLocal();scheduleSync()};
 
 /* ---------- Server sync (Firestore REST, no SDK) ---------- */
 const FB={key:"AIzaSyDcM4jF_OeEH97mTai-UyUkSRAwlxBz_rA",project:"satellite-quiz-a557a"};
-const docUrl=id=>"https://firestore.googleapis.com/v1/projects/"+FB.project+"/databases/(default)/documents/mapquiz_users/"+encodeURIComponent(id)+"?key="+FB.key;
-async function fetchRemote(id){
-  const r=await fetch(docUrl(id),{cache:"no-store"});
+const FS="https://firestore.googleapis.com/v1/projects/"+FB.project+"/databases/(default)/documents/";
+const docUrl=uid=>FS+"mapquiz_accounts/"+encodeURIComponent(uid)+"?key="+FB.key;
+const legacyUrl=id=>FS+"mapquiz_users/"+encodeURIComponent(id)+"?key="+FB.key;
+async function authHeaders(){const u=fbAuth&&fbAuth.currentUser;if(!u)throw new Error("not signed in");return{Authorization:"Bearer "+await u.getIdToken()}}
+function parseDoc(j){const raw=j.fields&&j.fields.data&&j.fields.data.stringValue;return raw?JSON.parse(raw):{games:[],cities:{}}}
+async function fetchRemote(uid){
+  const r=await fetch(docUrl(uid),{cache:"no-store",headers:await authHeaders()});
   if(r.status===404)return null;
   if(!r.ok)throw new Error("HTTP "+r.status);
-  const j=await r.json();const raw=j.fields&&j.fields.data&&j.fields.data.stringValue;
-  return raw?JSON.parse(raw):{games:[],cities:{}};
+  return parseDoc(await r.json());
+}
+async function fetchLegacy(id){
+  const r=await fetch(legacyUrl(id),{cache:"no-store"});
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  return parseDoc(await r.json());
 }
 async function pushRemote(id,p){
-  p.cities={};const data=JSON.stringify({games:p.games,cities:{},favs:p.favs||{},created:p.created});
-  const r=await fetch(docUrl(id),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fields:{data:{stringValue:data},updatedAt:{timestampValue:new Date().toISOString()}}})});
+  p.cities={};const data=JSON.stringify({games:p.games,cities:{},favs:p.favs||{},created:p.created,migrated:p.migrated||[],migrateAsked:!!p.migrateAsked});
+  const r=await fetch(docUrl(id),{method:"PATCH",headers:Object.assign({"Content-Type":"application/json"},await authHeaders()),body:JSON.stringify({fields:{data:{stringValue:data},updatedAt:{timestampValue:new Date().toISOString()}}})});
   if(!r.ok)throw new Error("HTTP "+r.status);
 }
 let syncTimer=null,syncing=false,syncState="idle";
@@ -638,7 +673,7 @@ function mergeLegacy(remote,local){
   const byT={};(remote.games||[]).forEach(g=>byT[g.t]=g);(local.games||[]).forEach(g=>byT[g.t]=g);
   const cities=JSON.parse(JSON.stringify(remote.cities||{}));
   Object.entries(local.cities||{}).forEach(([en,s])=>{const r=cities[en]||{s:0,c:0};r.s+=s.s;r.c+=s.c;cities[en]=r});
-  return{games:Object.values(byT).sort((a,b)=>a.t-b.t).slice(-200),cities,favs:Object.assign({},remote.favs||{},local.favs||{}),created:Math.min(remote.created||Date.now(),local.created||Date.now())};
+  return{games:Object.values(byT).sort((a,b)=>a.t-b.t).slice(-200),cities,favs:Object.assign({},remote.favs||{},local.favs||{}),migrated:[...new Set([...(remote.migrated||[]),...(local.migrated||[])])],migrateAsked:!!(remote.migrateAsked||local.migrateAsked),created:Math.min(remote.created||Date.now(),local.created||Date.now())};
 }
 /* 서버 기록과 이 기기 기록을 합쳐 최신 상태를 만든다 */
 function reconcile(id,remote){
@@ -646,7 +681,7 @@ function reconcile(id,remote){
   if(remote===null){const p=local||{games:[],cities:{},created:Date.now()};p.pending=true;return p}
   if(local&&!local.syncedAt){const m=mergeLegacy(remote,local);m.pending=true;return m}
   if(local&&local.pending)return local;
-  return{games:remote.games||[],cities:remote.cities||{},favs:remote.favs||{},created:remote.created||Date.now(),syncedAt:Date.now(),pending:false};
+  return{games:remote.games||[],cities:remote.cities||{},favs:remote.favs||{},migrated:remote.migrated||[],migrateAsked:!!remote.migrateAsked,created:remote.created||Date.now(),syncedAt:Date.now(),pending:false,info:local&&local.info};
 }
 async function refreshFromServer(){
   const id=me;if(!id)return;
@@ -976,8 +1011,8 @@ let favLimit=10;
 function openRecords(keep){
   if(keep!==true){recLimit=10;favLimit=10}
   const p=profile();let html;
-  $("recTitle").textContent=me?me+"님의 기록":"기록";
-  $("recSwitch").textContent=me?"아이디 바꾸기":"로그인";
+  $("recTitle").textContent=me?meName()+"님의 기록":"기록";
+  $("recSwitch").textContent="로그인";$("recSwitch").hidden=!!me;
   if(!p){html='<p>로그인하면 게임 결과, 자주 틀린 도시, 즐겨찾기가 저장돼요.</p>';$("recReview").hidden=true}
   else{
     const g=p.games,tot=g.reduce((a,x)=>a+x.total,0),cor=g.reduce((a,x)=>a+x.correct,0),perfect=g.filter(x=>x.correct===x.total).length;
@@ -1029,38 +1064,107 @@ $("recBody").addEventListener("click",e=>{
 });
 $("recSwitch").onclick=()=>{closeM("recScrim");setTimeout(openLogin,200)};
 
-/* ---------- Login ---------- */
-function updateUser(){$("recBtn").innerHTML="Records"+(me?'<span class="who">'+esc(me)+"</span>":"")}
-function openLogin(){
-  const ids=Object.keys(users);
-  $("knownIds").innerHTML=ids.length?'<span class="muted" style="width:100%">이 기기에서 쓴 아이디</span>'+ids.map(id=>'<button class="chip" data-id="'+esc(id)+'">'+esc(id)+"</button>").join(""):"";
-  $("loginId").value="";openM("loginScrim");
-  setTimeout(()=>$("loginId").focus(),60);
+/* ---------- Login (Google, Firebase Auth) ---------- */
+const FB_CFG={apiKey:FB.key,authDomain:"satellite-quiz-a557a.firebaseapp.com",projectId:FB.project,appId:"1:1096544370523:web:fdee0f72b1fb113963647e"};
+const FB_VER="13.1.0";
+let fbAuth=null,fbMod=null,authReady=false,welcomePending=false;
+function updateUser(){$("recBtn").innerHTML="Records"+(me?'<span class="who">'+esc(meName())+"</span>":"")}
+function openLogin(){$("loginMsg").textContent="";openM("loginScrim")}
+async function initAuth(){
+  try{
+    const [appM,authM]=await Promise.all([
+      import("https://www.gstatic.com/firebasejs/"+FB_VER+"/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/"+FB_VER+"/firebase-auth.js")]);
+    fbMod=authM;fbAuth=authM.getAuth(appM.initializeApp(FB_CFG));
+    authM.onAuthStateChanged(fbAuth,onAuth);
+  }catch(e){
+    authReady=true;syncState="error";renderSync();
+    toast("로그인 기능을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.");
+  }
 }
-let loggingIn=false;
-function validId(id){return id&&id.length<=20&&!id.includes("/")&&id!=="."&&id!==".."&&!/^__.*__$/.test(id)}
-async function login(id){
-  id=(id||"").trim();
-  const msg=$("loginMsg"),inp=$("loginId"),btn=$("loginBtn");
-  if(!validId(id)){inp.classList.remove("shake");void inp.offsetWidth;inp.classList.add("shake");msg.textContent=id?"아이디에 / 는 쓸 수 없어요.":"";return}
-  if(loggingIn)return;
-  loggingIn=true;btn.disabled=true;btn.textContent="불러오는 중…";msg.textContent="";
-  let failed=false,remote=null;
-  try{remote=await fetchRemote(id)}catch(e){failed=true}
-  if(!failed)users[id]=reconcile(id,remote);
-  else if(!users[id])users[id]={games:[],cities:{},created:Date.now(),pending:true};
-  loggingIn=false;btn.disabled=false;btn.textContent="시작하기";
-  me=id;saveLocal();store.set("mq-me",me);updateUser();
-  closeM("loginScrim");
-  if(failed){syncState="error";toast("서버에 연결하지 못해서 이 기기 기록으로 시작해요. 연결되면 자동으로 저장돼요.")}
-  else{syncState="saved";if(users[id].pending)syncNow();toast(remote?id+"님의 기록을 불러왔어요.":id+" 아이디를 새로 만들었어요.")}
+async function onAuth(user){
+  const first=!authReady;authReady=true;
+  if(!user){
+    if(me){me=null;meInfo=null;store.set("mq-uid",null);updateUser();updateScope()}
+    if(first){
+      if(!store.get("mq-guest",false))setTimeout(openLogin,300);
+      else if(!store.get("mq-tut",false))setTimeout(openSettings,300);
+    }
+    return;
+  }
+  const uid=user.uid;
+  meInfo={name:user.displayName||(user.email||"").split("@")[0]||"나",email:user.email||"",photo:user.photoURL||""};
+  me=uid;store.set("mq-uid",me);store.set("mq-guest",false);
+  if(!users[uid])users[uid]={games:[],cities:{},favs:{},created:Date.now()};
+  users[uid].info=meInfo;saveLocal();updateUser();
+  if($("loginScrim").classList.contains("open"))closeM("loginScrim");
+  if(welcomePending){welcomePending=false;toast(meName()+"님, 반가워요!")}
+  let remote=null,failed=false;
+  try{remote=await fetchRemote(uid)}catch(e){failed=true}
+  if(me!==uid)return;
+  if(!failed){
+    users[uid]=reconcile(uid,remote);users[uid].info=meInfo;saveLocal();
+    if(users[uid].pending)syncNow();else{syncState="saved";renderSync()}
+  }else{syncState="error";renderSync()}
+  updateScope();
+  if($("recScrim").classList.contains("open"))openRecords(true);
+  if(!failed&&!users[uid].migrateAsked&&(remote===null||Object.keys(legacyUsers).length))setTimeout(openMigrate,450);
+  else if(!store.get("mq-tut",false))setTimeout(openSettings,450);
+}
+function googleLogin(){
+  const msg=$("loginMsg");
+  if(!fbAuth){msg.textContent="로그인 기능을 불러오는 중이에요. 잠시 후 다시 눌러 주세요.";return}
+  msg.textContent="";
+  const prov=new fbMod.GoogleAuthProvider();prov.setCustomParameters({prompt:"select_account"});
+  welcomePending=true;
+  fbMod.signInWithPopup(fbAuth,prov).catch(e=>{
+    welcomePending=false;
+    const c=(e&&e.code)||"";
+    if(c==="auth/popup-closed-by-user"||c==="auth/cancelled-popup-request")return;
+    msg.textContent=c==="auth/popup-blocked"?"팝업이 차단됐어요. 사파리 설정에서 '팝업 차단'을 끄고 다시 눌러 주세요."
+      :c==="auth/unauthorized-domain"?"이 사이트 주소가 Firebase 승인된 도메인에 없어요."
+      :c==="auth/network-request-failed"?"인터넷 연결을 확인하고 다시 눌러 주세요."
+      :"로그인하지 못했어요. ("+c+")";
+  });
+}
+function logout(){if(fbAuth&&fbMod)fbMod.signOut(fbAuth);else{me=null;meInfo=null;store.set("mq-uid",null);updateUser()}toast("로그아웃했어요.")}
+function afterLogin(){if(!store.get("mq-tut",false))setTimeout(openSettings,300)}
+$("googleBtn").onclick=googleLogin;
+$("guestBtn").onclick=$("loginX").onclick=()=>{store.set("mq-guest",true);closeM("loginScrim");afterLogin()};
+
+/* ---------- 예전 아이디 기록 가져오기 ---------- */
+function openMigrate(){
+  const ids=Object.keys(legacyUsers);
+  $("migId").value=legacyMe&&legacyUsers[legacyMe]?legacyMe:(ids[0]||"");
+  $("migKnown").innerHTML=ids.length?'<span class="muted" style="width:100%">이 기기에서 쓰던 아이디</span>'+ids.map(id=>'<button class="chip" data-mig="'+esc(id)+'">'+esc(id)+"</button>").join(""):"";
+  $("migMsg").textContent="";openM("migScrim");
+}
+async function importLegacy(){
+  const id=$("migId").value.trim(),msg=$("migMsg"),btn=$("migDo"),p=profile();
+  if(!id||!p)return;
+  btn.disabled=true;btn.textContent="가져오는 중…";msg.textContent="";
+  let remoteL=null,err=false;
+  try{remoteL=await fetchLegacy(id)}catch(e){err=true}
+  btn.disabled=false;btn.textContent="가져오기";
+  const localL=legacyUsers[id];
+  if(err&&!localL){msg.textContent="서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.";return}
+  if(!remoteL&&!localL){msg.textContent="'"+id+"' 아이디의 기록을 찾지 못했어요.";return}
+  const src=remoteL&&localL?mergeLegacy(remoteL,localL):(remoteL||localL);
+  const byT={};p.games.forEach(g=>byT[g.t]=g);
+  let gN=0;(src.games||[]).forEach(g=>{if(!byT[g.t]){byT[g.t]=g;gN++}});
+  p.games=Object.values(byT).sort((a,b)=>a.t-b.t).slice(-200);
+  p.favs=p.favs||{};let fN=0;
+  Object.entries(src.favs||{}).forEach(([en,f])=>{const cur=p.favs[en];if(!cur){p.favs[en]=f;fN++}else if(!cur.memo&&f.memo)cur.memo=f.memo});
+  p.migrated=[...new Set([...(p.migrated||[]),id])];p.migrateAsked=true;saveUsers();
+  closeM("migScrim");updateScope();
+  toast(gN||fN?"세트 기록 "+gN+"개와 즐겨찾기 "+fN+"개를 가져왔어요.":"새로 가져올 기록이 없었어요. 이미 합쳐져 있어요.");
+  if($("recScrim").classList.contains("open"))openRecords(true);
   afterLogin();
 }
-function afterLogin(){if(!store.get("mq-tut",false))setTimeout(openSettings,300)}
-$("loginBtn").onclick=()=>login($("loginId").value);
-$("loginId").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();login($("loginId").value)}});
-$("knownIds").addEventListener("click",e=>{const b=e.target.closest("[data-id]");if(b)login(b.dataset.id)});
-$("guestBtn").onclick=$("loginX").onclick=()=>{me=null;store.set("mq-me",null);updateUser();closeM("loginScrim");afterLogin()};
+$("migDo").onclick=importLegacy;
+$("migSkip").onclick=()=>{const p=profile();if(p){p.migrateAsked=true;saveUsers()}closeM("migScrim");afterLogin()};
+$("migKnown").addEventListener("click",e=>{const b=e.target.closest("[data-mig]");if(b)$("migId").value=b.dataset.mig});
+$("migId").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();importLegacy()}});
 
 /* ---------- Scope sheet ---------- */
 let draft=null;
@@ -1109,8 +1213,9 @@ function setTheme(t){
 function renderSettings(){
   const t=store.get("mq-theme","system");
   document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.themeOpt===t)));
-  $("setAccount").textContent=me?me+" 아이디로 로그인 중이에요. 기록은 서버에 저장돼요.":"로그인하지 않았어요. 로그인하면 기록이 저장돼요.";
-  $("setSwitch").textContent=me?"아이디 바꾸기":"로그인";
+  $("setAccount").innerHTML=me?'<span class="acct">'+(meInfo&&meInfo.photo?'<img src="'+esc(meInfo.photo)+'" alt="" referrerpolicy="no-referrer">':"")+"<span><b>"+esc(meName())+"</b><br>"+esc(meInfo&&meInfo.email||"")+"</span></span>":"로그인하지 않았어요. Google로 로그인하면 기록이 저장되고, 내 기록은 나만 볼 수 있어요.";
+  $("setSwitch").textContent=me?"로그아웃":"로그인";
+  $("setMigrate").hidden=!me;
 }
 function openSettings(){renderSettings();openM("tutScrim")}
 
@@ -1185,7 +1290,8 @@ $("listBody").addEventListener("click",e=>{
 ["enterBtn","passBtn","hintBtn","zIn","zOut"].forEach(id=>$(id).addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()}));
 $("tutBtn").onclick=openSettings;
 $("themeSeg").addEventListener("click",e=>{const b=e.target.closest("[data-theme-opt]");if(!b)return;setTheme(b.dataset.themeOpt);renderSettings()});
-$("setSwitch").onclick=()=>{closeM("tutScrim");setTimeout(openLogin,200)};
+$("setSwitch").onclick=()=>{closeM("tutScrim");if(me)logout();else setTimeout(openLogin,200)};
+$("setMigrate").onclick=()=>{closeM("tutScrim");setTimeout(openMigrate,200)};
 $("recBtn").onclick=()=>openRecords();
 $("scopeBtn").onclick=openScope;
 document.querySelector(".mode").addEventListener("click",e=>{
@@ -1196,10 +1302,8 @@ document.querySelector(".mode").addEventListener("click",e=>{
 
 updateUser();
 newGame();
-if(me)refreshFromServer();
 layout();
-if(!me)setTimeout(openLogin,350);
-else if(!store.get("mq-tut",false))setTimeout(openSettings,400);
+initAuth();
 </script>
 </body>
 </html>
