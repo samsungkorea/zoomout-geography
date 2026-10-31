@@ -656,7 +656,7 @@ function startGame(kind,list){
   endReveal();layers.forEach(l=>{l.classList.add("off");clearInline(l)});
   active=0;place(0,list[0]);place(1,list[1]);
   layers[0].classList.remove("off");layers[1].classList.add("off");
-  if(kind==="practice")placeReveal(list[0]);
+  placeReveal(list[0]);
   $("passBtn").textContent=kind==="practice"?"정답 보기":"Pass";
   renderMode();renderTop();renderHint();resetInput(true);updateScope();
 }
@@ -705,8 +705,9 @@ function answer(passed){
   const verdict=ok?(item.hinted?"정답 (힌트 사용)":"정답"):(passed?(st.kind==="practice"?"정답 보기":"패스"):"아쉬워요");
   $("reveal").innerHTML='<span class="verdict '+(ok?"ok":"bad")+'">'+verdict+'</span><div class="city">'+esc(city.en)+"<span>"+esc(city.ko)+'</span></div><div class="country">'+esc(city.cEn)+" · "+esc(city.cKo)+"</div>"+(st.kind==="practice"?'<div class="next">Enter를 누르면 다음 문제로 넘어가요</div>':"");
   $("reveal").classList.add("show");
-  if(st.kind==="practice")playRevealZoom(city);
-  else revealTimer=setTimeout(advance,ok?1500:2400);
+  playRevealZoom(city);
+  /* 퀴즈는 줌아웃(1.6초)을 다 본 뒤 자동으로 넘어감. 기다리기 싫으면 Enter로 바로 다음 */
+  if(st.kind!=="practice")revealTimer=setTimeout(advance,ok?2600:3400);
 }
 function addHistory(it){
   const li=document.createElement("li");
@@ -735,7 +736,7 @@ function advance(){
   setTimeout(()=>{
     if(!st)return;
     if(st.queue[st.idx+1])place(old,st.queue[st.idx+1]);
-    if(st.kind==="practice"&&!revealing)placeReveal(st.queue[st.idx]);
+    if(!revealing)placeReveal(st.queue[st.idx]);
   },800);
   renderTop();renderHint();resetInput(false);
 }
