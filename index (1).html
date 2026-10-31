@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Map Quiz in Satellite</title>
+<meta name="description" content="라벨 없는 위성 사진으로 도시를 맞혀 보세요. 전 세계 321개 도시 퀴즈.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Map Quiz in Satellite">
+<meta property="og:title" content="Map Quiz in Satellite">
+<meta property="og:description" content="라벨 없는 위성 사진으로 도시를 맞혀 보세요. 전 세계 321개 도시 퀴즈.">
+<meta property="og:url" content="https://samsungkorea.github.io/satellite-quiz/">
+<meta property="og:image" content="https://samsungkorea.github.io/satellite-quiz/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Map Quiz">
+<meta name="theme-color" content="#e9eef2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f161c" media="(prefers-color-scheme: dark)">
+<script>try{var t=JSON.parse(localStorage.getItem("mq-theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&display=swap">
+<style>
+:root{
+  --bg:#e9eef2; --surface:#f8fafb; --ink:#14202b; --muted:#5d6b77; --line:#d3dce3;
+  --ok:#18865f; --ok-soft:#dcf1e8; --bad:#e0306a; --bad-soft:#fbe1ea; --focus:#2a5bd7;
+  --map-bg:#0d1820;
+  --sans:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --display:"Bricolage Grotesque","Pretendard",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f161c; --surface:#17212a; --ink:#e7edf2; --muted:#93a2ae; --line:#26333e;
+    --ok:#3fc596; --ok-soft:#173a2e; --bad:#ff5a8c; --bad-soft:#41192a; --focus:#7aa2ff;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f161c; --surface:#17212a; --ink:#e7edf2; --muted:#93a2ae; --line:#26333e;
+  --ok:#3fc596; --ok-soft:#173a2e; --bad:#ff5a8c; --bad-soft:#41192a; --focus:#7aa2ff;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* ---------- Layout: always fits one screen ---------- */
+.app{
+  height:100%;max-width:1240px;margin:0 auto;
+  padding:clamp(12px,2.6vh,28px) clamp(16px,3vw,36px) clamp(8px,1.8vh,18px);
+  display:grid;
+  grid-template-columns:var(--mapcol,minmax(0,1.2fr)) minmax(280px,1fr);
+  grid-template-rows:auto minmax(0,1fr) auto;
+  grid-template-areas:"head head" "map panel" "foot foot";
+  gap:clamp(10px,2.2vh,22px) clamp(20px,3vw,44px);
+}
+header{grid-area:head;display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0}
+.title-row{display:flex;align-items:center;gap:16px;min-width:0;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,3.2vw,38px);letter-spacing:-.02em;line-height:1.1;margin:0}
+.qnum{font-family:var(--display);font-weight:700;font-size:clamp(22px,3.2vw,38px);letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.qnum small{font-size:.5em;color:var(--muted);font-weight:500;margin-left:4px}
+.mode{position:relative;display:inline-flex;border:1.5px solid var(--ink);border-radius:999px;padding:2px;gap:2px}
+.mode-pill{position:absolute;top:2px;bottom:2px;left:2px;width:0;border-radius:999px;background:var(--ink);z-index:0;pointer-events:none;transition:left .34s cubic-bezier(.34,1.35,.5,1),width .34s cubic-bezier(.34,1.35,.5,1),background-color .5s ease}
+.mode-pill.no-anim{transition:none}
+.mode button{position:relative;z-index:1;border:0;background:transparent;border-radius:999px;padding:3px 12px;font-family:var(--display);font-weight:500;font-size:15px;transition:color .3s ease}
+.mode button[aria-pressed="true"]{color:var(--surface)}
+
+.map-cell{grid-area:map;container-type:size;min-width:0;min-height:0;padding:9px;display:flex;align-items:flex-start;justify-content:flex-start}
+.map-wrap{position:relative;width:min(100cqw,100cqh);height:min(100cqw,100cqh);isolation:isolate;z-index:0}
+.map-box{position:absolute;inset:0;border-radius:6px;overflow:hidden;background:var(--map-bg)}
+.map-layer{position:absolute;inset:0;z-index:1;isolation:isolate;pointer-events:none;visibility:visible;transition:opacity .7s ease,filter .7s ease,transform 1.1s cubic-bezier(.2,.7,.2,1),visibility 0s}
+body.practice .map-layer:not(.off){pointer-events:auto}
+#layerC{z-index:0}
+/* 숨은 지도는 페이드가 끝나면 아예 그리지 않음 (사진은 계속 미리 불러옴) */
+.map-layer.off{opacity:0;filter:blur(12px);transform:scale(1.05);visibility:hidden;transition:opacity .7s ease,filter .7s ease,transform 1.1s cubic-bezier(.2,.7,.2,1),visibility 0s linear .75s}
+.map-layer .leaflet-container{width:100%;height:100%;background:var(--map-bg)}
+.leaflet-control-attribution{font-size:10px!important;background:rgba(0,0,0,.45)!important;color:#d8dee3!important;pointer-events:none}
+.leaflet-control-attribution a{color:#d8dee3!important}
+.tick{position:absolute;width:22px;height:22px;border-color:var(--ink);border-style:solid;border-width:0;z-index:5;pointer-events:none}
+.tick.tl{top:-8px;left:-8px;border-top-width:2px;border-left-width:2px}
+.tick.tr{top:-8px;right:-8px;border-top-width:2px;border-right-width:2px}
+.tick.bl{bottom:-8px;left:-8px;border-bottom-width:2px;border-left-width:2px}
+.tick.br{bottom:-8px;right:-8px;border-bottom-width:2px;border-right-width:2px}
+.zoomctl{position:absolute;top:12px;right:12px;z-index:6;display:none;flex-direction:column;gap:6px}
+body.practice .zoomctl{display:flex}
+.zoomctl button{width:38px;height:38px;border-radius:6px;border:0;background:rgba(10,18,24,.6);color:#fff;font-size:22px;line-height:1;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.reveal{position:absolute;left:0;right:0;bottom:0;z-index:4;padding:44px 20px 18px;color:#fff;background:linear-gradient(to top,rgba(5,10,14,.85),rgba(5,10,14,0));transform:translateY(100%);opacity:0;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .3s ease;pointer-events:none}
+.reveal.show{transform:none;opacity:1}
+.reveal .verdict{font-size:14px;font-weight:600;display:inline-block;padding:2px 10px;border-radius:999px;margin-bottom:6px}
+.reveal .verdict.ok{background:var(--ok);color:#fff}
+.reveal .verdict.bad{background:var(--bad);color:#fff}
+.reveal .city{font-family:var(--display);font-size:clamp(22px,3vw,32px);font-weight:700;letter-spacing:-.01em;line-height:1.15}
+.reveal .city span{font-family:var(--sans);font-weight:500;font-size:.62em;opacity:.85;margin-left:8px}
+.reveal .country{font-size:14px;opacity:.85}
+.reveal .next{font-size:13px;opacity:.75;margin-top:6px}
+
+.panel{grid-area:panel;display:flex;flex-direction:column;min-height:0;min-width:0;gap:clamp(8px,1.6vh,14px);padding-top:9px}
+.score{display:flex;align-items:center;gap:16px}
+.score-num{font-family:var(--display);font-size:clamp(24px,3vw,30px);font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;min-width:4.2ch}
+.bar{flex:1;height:12px;border:1.5px solid var(--ink);border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:repeating-linear-gradient(-45deg,var(--ink) 0 3px,transparent 3px 7px);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.history{list-style:none;margin:0;padding:0 2px 0 0;flex:1;min-height:48px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;scroll-behavior:smooth;mask-image:linear-gradient(to bottom,transparent 0,#000 24px);-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 24px)}
+.history:empty::before{content:"맞힌 도시와 틀린 도시가 여기에 쌓여요.";color:var(--muted);font-size:14px;margin-top:auto}
+.history li{display:flex;align-items:center;gap:10px;padding:6px 2px;font-size:17px;animation:slideIn .45s cubic-bezier(.2,.8,.2,1) both}
+.history li:first-child{margin-top:auto}
+.history .n{font-family:var(--display);color:var(--muted);font-variant-numeric:tabular-nums;min-width:2.6ch}
+.history .g{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.history .sub{color:var(--muted);font-size:14px;white-space:nowrap}
+.mark{flex:none;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:4px;border:1.5px solid;font-size:13px;font-weight:700;line-height:1}
+.mark.ok{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+.mark.bad{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.history .hinted{font-size:13px}
+@keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.hint-line{display:flex;flex-direction:column;gap:4px}
+.hint-line div{font-size:15px;color:var(--muted);animation:slideIn .35s ease both}
+.hint-line b{color:var(--ink);font-weight:600}
+.answer{display:flex;align-items:flex-end;gap:12px;border-bottom:2px solid var(--ink);padding-bottom:6px;transition:border-color .25s}
+.answer input{flex:1;min-width:0;border:0;background:transparent;font-size:22px;font-weight:600;padding:6px 2px;outline:none}
+.answer input::placeholder{color:var(--muted);font-weight:400}
+.answer.ok{border-color:var(--ok)}
+.answer.bad{border-color:var(--bad)}
+.answer.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.enter{border:1.5px solid var(--ink);background:var(--surface);border-radius:6px;padding:6px 16px;font-weight:700;font-family:var(--display);font-size:18px;box-shadow:3px 3px 0 var(--ink);transition:transform .12s,box-shadow .12s}
+.enter:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+
+footer{grid-area:foot;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.left-actions,.right-actions{display:flex;gap:clamp(10px,2vw,20px);align-items:center}
+.link{background:none;border:0;padding:6px 2px;font-family:var(--display);font-size:clamp(16px,1.8vw,20px);font-weight:500;white-space:nowrap}
+.link:hover{text-decoration:underline;text-underline-offset:4px}
+.link:disabled{opacity:.35;cursor:default;text-decoration:none}
+.link .who{font-family:var(--sans);font-size:.75em;color:var(--muted);margin-left:4px}
+.scope{background:none;border:0;font-family:var(--display);font-size:clamp(16px,1.8vw,20px);font-weight:500;display:inline-flex;align-items:center;gap:8px;padding:6px 4px;min-width:0}
+.scope .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scope .caret{flex:none;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid currentColor}
+.dots{display:inline-flex;gap:3px;margin-left:6px;vertical-align:middle}
+.dots i{width:6px;height:6px;border-radius:50%;border:1.5px solid currentColor}
+.dots i.on{background:currentColor}
+
+/* Portrait / narrow screens: map on top, everything still in one screen */
+@media (max-aspect-ratio: 1/1){
+  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;grid-template-areas:"head" "map" "panel" "foot"}
+  .map-cell{justify-content:center}
+  .panel{padding-top:0}
+  .history{flex:none;height:clamp(56px,13vh,170px)}
+}
+@media (max-width:560px){
+  .title-row{gap:10px}
+  .mode button{padding:2px 9px;font-size:13px}
+  footer{flex-wrap:wrap;row-gap:0}
+  .scope{order:3;width:100%;justify-content:center}
+}
+
+/* ---------- Sheets & modals ---------- */
+.scrim{position:fixed;inset:0;background:rgba(8,14,20,.45);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:5000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .3s ease}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{background:var(--surface);color:var(--ink);border-radius:10px;width:min(620px,100%);max-height:min(88vh,780px);display:flex;flex-direction:column;transform:translateY(24px) scale(.98);transition:transform .4s cubic-bezier(.2,.8,.2,1);box-shadow:0 24px 60px rgba(0,0,0,.25)}
+.sheet.small{width:min(440px,100%)}
+.scrim.open .sheet{transform:none}
+.sheet-head{padding:22px 24px 8px;display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.sheet-head h2{font-family:var(--display);font-size:26px;margin:0;letter-spacing:-.01em}
+.sheet-body{padding:6px 24px 10px;overflow-y:auto}
+.sheet-foot{padding:14px 24px 20px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.foot-right{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+.x{background:none;border:0;font-size:24px;line-height:1;padding:4px 8px;color:var(--muted)}
+.group{padding:14px 0;border-bottom:1px solid var(--line)}
+.group:last-child{border-bottom:0}
+.group-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.group-head h3{margin:0;font-size:17px;font-weight:700}
+.toggle-all{background:none;border:0;font-size:14px;color:var(--muted);padding:4px 0}
+.toggle-all:hover{color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-size:15px;transition:background .2s,border-color .2s,color .2s}
+.chip span{color:var(--muted);font-size:13px;margin-left:4px}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.chip[aria-pressed="true"] span{color:inherit;opacity:.7}
+.seg{display:inline-flex;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;padding:6px 14px;font-weight:600}
+.seg button+button{border-left:1.5px solid var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.quick{display:flex;gap:14px}
+.primary{border:1.5px solid var(--ink);background:var(--ink);color:var(--surface);border-radius:8px;padding:10px 18px;font-weight:700;font-size:16px}
+.primary:disabled{opacity:.35;cursor:default}
+.ghost{border:1.5px solid var(--ink);background:transparent;border-radius:8px;padding:10px 16px;font-weight:700;font-size:16px}
+.ghost:disabled{opacity:.35;cursor:default}
+.muted{color:var(--muted);font-size:14px}
+.tut ol{padding-left:20px;margin:6px 0 4px}
+.tut li{margin:8px 0}
+.result-big{font-family:var(--display);font-size:56px;font-weight:700;letter-spacing:-.03em;line-height:1;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.missed{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:6px}
+.missed li{font-size:15px}
+.missed li b{font-weight:600}
+.celebrate{text-align:center;padding:8px 0 4px}
+.celebrate .trophy{font-size:56px;line-height:1;animation:pop .7s cubic-bezier(.2,1.6,.4,1) both}
+.celebrate .result-big{color:var(--ok)}
+.celebrate .cheer{font-size:18px;font-weight:600;margin:8px 0 0}
+@keyframes pop{from{transform:scale(.3) rotate(-15deg);opacity:0}to{transform:none;opacity:1}}
+.login-input{width:100%;border:0;border-bottom:2px solid var(--ink);background:transparent;font-size:22px;font-weight:600;padding:8px 2px;outline:none}
+.login-input.shake{animation:shake .35s}
+.known{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:6px 0 4px}
+.stats div{border:1.5px solid var(--line);border-radius:8px;padding:10px 12px}
+.stats b{display:block;font-family:var(--display);font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stats span{font-size:13px;color:var(--muted)}
+.rec-h{font-size:16px;margin:18px 0 8px}
+.rec-list{list-style:none;padding:0;margin:0;display:grid;gap:4px}
+.rec-list li{display:flex;justify-content:space-between;gap:12px;font-size:15px;padding:6px 0;border-bottom:1px solid var(--line)}
+.rec-list li:last-child{border-bottom:0}
+.rec-list .r{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.rec-list .perfect{color:var(--ok)}
+.del{flex:none;border:0;background:none;color:var(--muted);font-size:14px;padding:2px 6px;border-radius:4px}
+.del:hover{color:var(--bad);background:var(--bad-soft)}
+.rec-list .right{display:flex;align-items:center;gap:10px}
+.danger{border:1.5px solid var(--bad);background:var(--bad);color:#fff;border-radius:8px;padding:10px 18px;font-weight:700;font-size:16px}
+.del-all{margin-top:14px;color:var(--bad)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:15px;max-width:min(92vw,520px);z-index:7000;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.sync{margin:0 0 10px}
+.sync.err{color:var(--bad)}
+.login-msg{color:var(--bad);min-height:1.2em;margin:8px 0 0}
+.more-btn{display:block;width:100%;margin-top:10px;padding:8px 16px;font-size:15px}
+.star{flex:none;border:0;background:none;font-size:20px;line-height:1;padding:2px 6px;color:var(--muted);border-radius:6px}
+.star[aria-pressed="true"]{color:#f2b632}
+.star:hover{background:var(--line)}
+.reveal button{pointer-events:auto}
+.reveal .star{font-size:24px;color:#fff;vertical-align:middle;margin-left:6px}
+.reveal .star[aria-pressed="true"]{color:#f2b632}
+.reveal .star:hover{background:rgba(255,255,255,.15)}
+.memo-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:15px}
+.memo-btn{border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.12);color:#fff;border-radius:999px;padding:2px 10px;font-size:13px}
+.set-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.toggle-all.strong{color:var(--ink);font-weight:700}
+.set-list li,.fav-list li{align-items:center}
+.set-list .mark{width:18px;height:18px;font-size:11px;vertical-align:-3px}
+.fav-row{flex:1;min-width:0;text-align:left;border:0;background:none;padding:0;font-size:15px;display:flex;flex-direction:column;gap:2px}
+.memo-prev{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grad{border:1.5px solid var(--ok);background:var(--ok-soft);border-radius:8px;padding:12px 14px;margin:16px 0 4px}
+.grad-q{margin:0 0 8px;font-weight:600}
+.grad-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:15px}
+.grad-row input{width:18px;height:18px;accent-color:var(--ok)}
+.grad-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:10px;flex-wrap:wrap}
+.memo-input{width:100%;border:1.5px solid var(--line);border-radius:8px;background:transparent;font-size:17px;padding:10px 12px;resize:vertical;outline:none}
+.memo-input:focus{border-color:var(--ink)}
+.fav-chip[aria-pressed="true"]{background:#f2b632;border-color:#f2b632;color:#14202b}
+#listBtn{display:none}
+body.practice #listBtn{display:inline-block}
+#layerD{z-index:2}
+.browse-card{z-index:5}
+body.browsing #reveal{opacity:0}
+.reveal .verdict.browse{background:#2a5bd7;color:#fff}
+.browse-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.browse-btns .memo-btn{font-size:14px;padding:4px 12px}
+.list-search{padding:0 24px 6px}
+.list-input{font-size:18px;padding:6px 2px}
+.city-list li{align-items:center}
+.list-row{flex:1;min-width:0;display:flex;justify-content:space-between;align-items:baseline;gap:12px;border:0;background:none;padding:2px 0;text-align:left;font-size:15px}
+.list-row:hover b{text-decoration:underline;text-underline-offset:3px}
+.google-btn{width:100%;border:1.5px solid var(--ink);background:var(--surface);color:var(--ink);border-radius:999px;padding:12px 18px;font-size:17px;font-weight:700;box-shadow:3px 3px 0 var(--ink);transition:transform .12s,box-shadow .12s}
+.google-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.acct-actions{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
+.acct{display:flex;align-items:center;gap:12px;color:var(--ink)}
+.acct img{width:40px;height:40px;border-radius:50%;flex:none}
+.acct span{font-size:14px;line-height:1.4;color:var(--muted)}
+.acct b{color:var(--ink);font-size:16px}
+/* ---------- HARD: 야간 정찰 ---------- */
+body{transition:background-color .6s ease,color .6s ease}
+.tick,.bar,.enter,.answer,.mode,.qnum,.sheet,.chip,.hard-btn{transition:background-color .5s ease,border-color .5s ease,color .5s ease,box-shadow .5s ease}
+.hard-btn{border:1.5px solid var(--ink);background:transparent;color:var(--ink);border-radius:999px;padding:3px 12px;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.06em}
+body.hard{--bg:#0b1322;--surface:#111c30;--ink:#e6ebf3;--muted:#8d9ab0;--line:#22304a;--amber:#f2b632;--focus:#f2b632;--map-bg:#060b14;color-scheme:dark;
+  background-image:linear-gradient(rgba(242,182,50,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(242,182,50,.045) 1px,transparent 1px);background-size:44px 44px}
+body.hard .hard-btn{background:var(--amber);border-color:var(--amber);color:#0b1322;box-shadow:0 0 0 4px rgba(242,182,50,.18)}
+body.hard .tick{border-color:var(--amber)}
+body.hard .qnum{color:var(--amber)}
+body.hard .bar{border-color:var(--amber)}
+body.hard .bar i{background:repeating-linear-gradient(-45deg,var(--amber) 0 4px,transparent 4px 8px)}
+body.hard .answer{border-bottom-color:var(--amber)}
+body.hard .answer.ok{border-color:var(--ok)}
+body.hard .answer.bad{border-color:var(--bad)}
+body.hard .enter{border-color:var(--amber);box-shadow:3px 3px 0 var(--amber)}
+body.hard .mode{border-color:var(--amber)}
+body.hard .mode button[aria-pressed="true"]{color:#0b1322}
+body.hard .mode-pill{background:var(--amber)}
+body.hard .primary{background:var(--amber);border-color:var(--amber);color:#0b1322}
+body.hard .chip[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:#0b1322}
+body.hard .map-box{box-shadow:0 0 0 1px rgba(242,182,50,.35),0 0 40px rgba(242,182,50,.08)}
+.hard-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:4px;background:#f2b632;color:#0b1322;font-size:11px;font-weight:700;letter-spacing:.05em;vertical-align:1px}
+.hard-cele .result-big{color:#f2b632}
+/* 테마를 바꾸는 순간에는 모든 전환 효과를 끔 (휴대폰 렉 방지) */
+html.theme-switching *,html.theme-switching *::before,html.theme-switching *::after{transition:none!important}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.45s;animation-timing-function:ease}
+html.vt-circle::view-transition-old(root),html.vt-circle::view-transition-new(root){animation:none;mix-blend-mode:normal}
+html.vt-circle::view-transition-new(root){z-index:2}
+/* 휴대폰·태블릿: 팝업 뒤 흐림 효과 대신 진한 반투명 배경 (화면 전체를 다시 그리는 부담 제거) */
+@media (pointer:coarse){.scrim{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(8,14,20,.62)}}
+#confetti{position:fixed;inset:0;width:100%;height:100%;z-index:6000;pointer-events:none;display:none}
+#confetti.on{display:block}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <div class="title-row">
+      <h1>Map Quiz in Satellite</h1>
+      <div class="mode" role="group" aria-label="모드">
+        <span class="mode-pill no-anim" id="modePill" aria-hidden="true"></span>
+        <button data-mode="quiz" aria-pressed="true">Quiz</button><button data-mode="practice" aria-pressed="false">Practice</button>
+      </div>
+      <button class="hard-btn" id="hardBtn" aria-pressed="false" title="소도시까지 나오는 HARD 모드">HARD</button>
+    </div>
+    <div class="qnum" id="qnum">#1<small>/ 20</small></div>
+  </header>
+
+  <div class="map-cell" id="mapCell">
+    <div class="map-wrap">
+      <span class="tick tl"></span><span class="tick tr"></span><span class="tick bl"></span><span class="tick br"></span>
+      <div class="map-box" id="mapBox">
+        <div class="map-layer" id="layerA"></div>
+        <div class="map-layer off" id="layerB"></div>
+        <div class="map-layer off" id="layerC"></div>
+        <div class="map-layer off" id="layerD"></div>
+        <div class="zoomctl"><button id="zIn" aria-label="확대">+</button><button id="zOut" aria-label="축소">−</button></div>
+        <div class="reveal" id="reveal" aria-live="polite"></div>
+        <div class="reveal browse-card" id="browseCard" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="score">
+      <div class="score-num" id="scoreNum">0 / 0</div>
+      <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
+    </div>
+    <ol class="history" id="history"></ol>
+    <div class="hint-line" id="hintLine"></div>
+    <div class="answer" id="answerBox">
+      <input id="answer" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" placeholder="도시 이름 (영어·한글)" aria-label="도시 이름">
+      <button class="enter" id="enterBtn">Enter</button>
+    </div>
+  </section>
+
+  <footer>
+    <div class="left-actions">
+      <button class="link" id="tutBtn">Settings</button>
+      <button class="link" id="recBtn">기록</button>
+    </div>
+    <button class="scope" id="scopeBtn" aria-haspopup="dialog"><span class="txt" id="scopeTxt">전 세계</span><span class="caret"></span></button>
+    <div class="right-actions">
+      <button class="link" id="listBtn">List</button>
+      <button class="link" id="passBtn">Pass</button>
+      <button class="link" id="hintBtn">Hint<span class="dots"><i></i><i></i></span></button>
+    </div>
+  </footer>
+</div>
+
+<!-- Login -->
+<div class="scrim" id="loginScrim" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <div class="sheet small">
+    <div class="sheet-head"><h2 id="loginTitle">로그인</h2><button class="x" id="loginX" aria-label="닫기">×</button></div>
+    <div class="sheet-body">
+      <p class="muted" style="margin-top:0">Google 계정으로 로그인하면 기록, 즐겨찾기, 메모가 저장되고 다른 기기에서도 이어져요. 내 기록은 나만 볼 수 있어요.</p>
+      <button class="google-btn" id="googleBtn">Google로 계속하기</button>
+      <p class="muted login-msg" id="loginMsg"></p>
+    </div>
+    <div class="sheet-foot"><button class="toggle-all" id="guestBtn">로그인 없이 하기</button></div>
+  </div>
+</div>
+
+<!-- 닉네임 -->
+<div class="scrim" id="nickScrim" role="dialog" aria-modal="true" aria-labelledby="nickTitle">
+  <div class="sheet small">
+    <div class="sheet-head"><h2 id="nickTitle">어떻게 불러드릴까요?</h2><button class="x" id="nickX" data-close="nickScrim" aria-label="닫기">×</button></div>
+    <div class="sheet-body">
+      <p class="muted" style="margin-top:0">사이트에서 쓸 닉네임이에요. 언제든 Settings에서 바꿀 수 있어요.</p>
+      <input class="login-input" id="nickText" maxlength="12" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="닉네임 (12자까지)" aria-label="닉네임">
+      <p class="muted login-msg" id="nickMsg"></p>
+    </div>
+    <div class="sheet-foot"><button class="toggle-all" id="nickSkip">Google 이름 그대로 쓰기</button><button class="primary" id="nickSave">좋아요</button></div>
+  </div>
+</div>
+
+<!-- 예전 기록 가져오기 -->
+<div class="scrim" id="migScrim" role="dialog" aria-modal="true" aria-labelledby="migTitle">
+  <div class="sheet small">
+    <div class="sheet-head"><h2 id="migTitle">예전 기록 가져오기</h2></div>
+    <div class="sheet-body">
+      <p class="muted" style="margin-top:0">예전에 아이디로 쓰던 기록이 있다면 이 Google 계정으로 가져올 수 있어요. 세트 기록, 즐겨찾기, 메모가 합쳐져요.</p>
+      <input class="login-input" id="migId" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" placeholder="예전 아이디" aria-label="예전 아이디">
+      <p class="muted login-msg" id="migMsg"></p>
+      <div class="known" id="migKnown"></div>
+    </div>
+    <div class="sheet-foot"><button class="toggle-all" id="migSkip">건너뛰기</button><button class="primary" id="migDo">가져오기</button></div>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="scrim" id="setScrim" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="setTitle">출제 범위</h2><button class="x" data-close="setScrim" aria-label="닫기">×</button></div>
+    <div class="sheet-body">
+      <div class="group">
+        <div class="group-head"><h3>문제 수</h3><span class="muted" id="countNote"></span></div>
+        <div class="seg" id="countSeg">
+          <button data-c="10">10</button><button data-c="20">20</button><button data-c="50">50</button><button data-c="0">전부</button>
+        </div>
+      </div>
+      <div class="group">
+        <div class="group-head"><h3>즐겨찾기</h3><span class="muted" id="favNote"></span></div>
+        <div class="chips"><button class="chip fav-chip" id="favOnlyChip" aria-pressed="false">★ 즐겨찾기만</button></div>
+      </div>
+      <div id="regionGroups"></div>
+    </div>
+    <div class="sheet-foot">
+      <div class="quick"><button class="toggle-all" id="selAll">모두 선택</button><button class="toggle-all" id="selNone">모두 해제</button></div>
+      <button class="primary" id="applyBtn">새 게임 시작</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings (theme, account, tutorial) -->
+<div class="scrim" id="tutScrim" role="dialog" aria-modal="true" aria-labelledby="tutTitle">
+  <div class="sheet tut">
+    <div class="sheet-head"><h2 id="tutTitle">설정</h2><button class="x" data-close="tutScrim" aria-label="닫기">×</button></div>
+    <div class="sheet-body">
+      <div class="group">
+        <div class="group-head"><h3>화면 모드</h3></div>
+        <div class="seg" id="themeSeg">
+          <button data-theme-opt="system">시스템</button><button data-theme-opt="light">라이트</button><button data-theme-opt="dark">다크</button>
+        </div>
+      </div>
+      <div class="group">
+        <div class="group-head"><h3>계정</h3><button class="toggle-all" id="setSwitch">로그인</button></div>
+        <p class="muted" id="setAccount" style="margin:0"></p>
+        <div class="acct-actions"><button class="toggle-all" id="setNick" hidden>닉네임 바꾸기</button><button class="toggle-all" id="setMigrate" hidden>예전 아이디 기록 가져오기</button></div>
+      </div>
+      <div class="group">
+        <div class="group-head"><h3>이렇게 플레이해요</h3></div>
+        <ol>
+          <li>라벨 없는 위성 사진이 한 장 나와요. 퀴즈 모드에서는 지도가 움직이지 않아요.</li>
+          <li>어느 도시인지 영어나 한글로 입력하고 Enter를 누르세요. 악센트와 한두 글자 오타, LA·NYC 같은 약칭도 인정해요.</li>
+          <li>막히면 Hint를 누르세요. 첫 번째는 나라, 두 번째는 첫 글자를 알려줘요.</li>
+          <li>Practice 모드는 문제 수 제한이 없고, 두 손가락으로 지도를 벌리거나 오므려 확대·축소할 수 있어요. List를 누르면 범위 안의 도시 목록이 나오고, 도시를 누르면 그 위성 사진을 둘러볼 수 있어요.</li>
+          <li>제목 옆 HARD를 켜면 소도시 308곳이 더해져서, 지금 도시와 함께 섞여 나와요.</li>
+          <li>한 세트가 끝나면 틀린 도시만 골라 복습할 수 있어요. 로그인하면 Records에 결과가 쌓여요.</li>
+          <li>세트 결과 화면이나 Practice 정답 화면에서 ☆를 눌러 즐겨찾기에 담고 메모를 남길 수 있어요. Records에서 즐겨찾기만 복습하거나, 출제 범위에서 "즐겨찾기만"을 켤 수 있어요. 퀴즈 중에는 즐겨찾기 표시가 나오지 않아요.</li>
+        </ol>
+      </div>
+    </div>
+    <div class="sheet-foot"><span class="muted">위성 사진: Esri World Imagery</span><button class="primary" data-close="tutScrim">닫기</button></div>
+  </div>
+</div>
+
+<!-- Result -->
+<div class="scrim" id="resScrim" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="resTitle">결과</h2><button class="x" data-close="resScrim" aria-label="닫기">×</button></div>
+    <div class="sheet-body" id="resBody"></div>
+    <div class="sheet-foot">
+      <button class="toggle-all" id="resScope">범위 바꾸기</button>
+      <div class="foot-right">
+        <button class="ghost" id="resReview">틀린 도시 복습</button>
+        <button class="ghost" id="resSame">같은 문제 다시</button>
+        <button class="primary" id="resNew">새 게임</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Records -->
+<div class="scrim" id="recScrim" role="dialog" aria-modal="true" aria-labelledby="recTitle">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="recTitle">기록</h2><button class="x" data-close="recScrim" aria-label="닫기">×</button></div>
+    <div class="sheet-body" id="recBody"></div>
+    <div class="sheet-foot">
+      <button class="toggle-all" id="recSwitch">아이디 바꾸기</button>
+      <button class="primary" id="recReview">자주 틀린 도시 복습</button>
+    </div>
+  </div>
+</div>
+
+<!-- City list (practice) -->
+<div class="scrim" id="listScrim" role="dialog" aria-modal="true" aria-labelledby="listTitle">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="listTitle">도시 목록</h2><button class="x" data-close="listScrim" aria-label="닫기">×</button></div>
+    <div class="list-search"><input class="login-input list-input" id="listSearch" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="도시·나라 검색" aria-label="도시·나라 검색"></div>
+    <div class="sheet-body" id="listBody"></div>
+    <div class="sheet-foot"><span class="muted" id="listNote"></span><button class="primary" data-close="listScrim">닫기</button></div>
+  </div>
+</div>
+
+<!-- Memo -->
+<div class="scrim" id="memoScrim" role="dialog" aria-modal="true" aria-labelledby="memoTitle">
+  <div class="sheet small">
+    <div class="sheet-head"><h2 id="memoTitle">메모</h2><button class="x" data-close="memoScrim" aria-label="닫기">×</button></div>
+    <div class="sheet-body">
+      <p class="muted" style="margin-top:0">위성 사진에서 알아볼 수 있는 특징을 적어 두세요. 연습 모드와 즐겨찾기 복습에서만 보여요.</p>
+      <textarea class="memo-input" id="memoText" maxlength="120" rows="3" placeholder="예: 강이 S자로 크게 휘어 흐름"></textarea>
+    </div>
+    <div class="sheet-foot"><button class="ghost" data-close="memoScrim">취소</button><button class="primary" id="memoSave">저장</button></div>
+  </div>
+</div>
+
+<!-- Confirm -->
+<div class="scrim" id="cfmScrim" role="alertdialog" aria-modal="true" aria-labelledby="cfmTitle" aria-describedby="cfmMsg">
+  <div class="sheet small">
+    <div class="sheet-head"><h2 id="cfmTitle">정말 삭제하겠습니까?</h2></div>
+    <div class="sheet-body"><p id="cfmMsg" style="margin:0"></p></div>
+    <div class="sheet-foot"><button class="ghost" id="cfmNo">취소</button><button class="danger" id="cfmYes">삭제</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+/* ---------- Regions ---------- */
+const CONTINENTS=[
+ {id:"asia",name:"아시아",regions:[["ea","동아시아"],["sea","동남아시아"],["sas","남아시아"],["cas","중앙아시아"],["cau","코카서스"],["me","중동"]]},
+ {id:"eu",name:"유럽",regions:[["we","서유럽"],["ne","북유럽"],["se","남유럽"],["bal","발칸"],["ee","동유럽"]]},
+ {id:"af",name:"아프리카",regions:[["naf","북아프리카"],["waf","서아프리카"],["eaf","동아프리카"],["saf","중·남부 아프리카"]]},
+ {id:"na",name:"북아메리카",regions:[["nam","미국·캐나다"],["cam","중미·카리브"]]},
+ {id:"sa",name:"남아메리카",regions:[["sam","남아메리카"]]},
+ {id:"oc",name:"오세아니아",regions:[["oc","오세아니아"]]}
+];
+const REGION_NAME={};CONTINENTS.forEach(c=>c.regions.forEach(([id,n])=>REGION_NAME[id]=n));
+
+/* ---------- Countries: [English, 한글, region] ---------- */
+const C={
+KR:["South Korea","대한민국","ea"],JP:["Japan","일본","ea"],CN:["China","중국","ea"],HK:["Hong Kong (China)","홍콩 (중국)","ea"],MO:["Macau (China)","마카오 (중국)","ea"],TW:["Taiwan","대만","ea"],MN:["Mongolia","몽골","ea"],KP:["North Korea","북한","ea"],
+TH:["Thailand","태국","sea"],VN:["Vietnam","베트남","sea"],SG:["Singapore","싱가포르","sea"],MY:["Malaysia","말레이시아","sea"],ID:["Indonesia","인도네시아","sea"],PH:["Philippines","필리핀","sea"],KH:["Cambodia","캄보디아","sea"],LA:["Laos","라오스","sea"],MM:["Myanmar","미얀마","sea"],BN:["Brunei","브루나이","sea"],TL:["Timor-Leste","동티모르","sea"],
+IN:["India","인도","sas"],NP:["Nepal","네팔","sas"],BD:["Bangladesh","방글라데시","sas"],LK:["Sri Lanka","스리랑카","sas"],PK:["Pakistan","파키스탄","sas"],MV:["Maldives","몰디브","sas"],BT:["Bhutan","부탄","sas"],AF:["Afghanistan","아프가니스탄","sas"],
+UZ:["Uzbekistan","우즈베키스탄","cas"],KZ:["Kazakhstan","카자흐스탄","cas"],KG:["Kyrgyzstan","키르기스스탄","cas"],TJ:["Tajikistan","타지키스탄","cas"],TM:["Turkmenistan","투르크메니스탄","cas"],
+GE:["Georgia","조지아","cau"],AM:["Armenia","아르메니아","cau"],AZ:["Azerbaijan","아제르바이잔","cau"],
+TR:["Türkiye","튀르키예","me"],AE:["United Arab Emirates","아랍에미리트","me"],QA:["Qatar","카타르","me"],SA:["Saudi Arabia","사우디아라비아","me"],OM:["Oman","오만","me"],KW:["Kuwait","쿠웨이트","me"],BH:["Bahrain","바레인","me"],IR:["Iran","이란","me"],IQ:["Iraq","이라크","me"],SY:["Syria","시리아","me"],LB:["Lebanon","레바논","me"],JO:["Jordan","요르단","me"],IL:["Israel","이스라엘","me"],IP:["Israel / Palestine","이스라엘·팔레스타인","me"],YE:["Yemen","예멘","me"],
+GB:["United Kingdom","영국","we"],IE:["Ireland","아일랜드","we"],FR:["France","프랑스","we"],NL:["Netherlands","네덜란드","we"],BE:["Belgium","벨기에","we"],LU:["Luxembourg","룩셈부르크","we"],DE:["Germany","독일","we"],CH:["Switzerland","스위스","we"],AT:["Austria","오스트리아","we"],MC:["Monaco","모나코","we"],
+SE:["Sweden","스웨덴","ne"],NO:["Norway","노르웨이","ne"],DK:["Denmark","덴마크","ne"],FI:["Finland","핀란드","ne"],IS:["Iceland","아이슬란드","ne"],EE:["Estonia","에스토니아","ne"],LV:["Latvia","라트비아","ne"],LT:["Lithuania","리투아니아","ne"],
+IT:["Italy","이탈리아","se"],ES:["Spain","스페인","se"],PT:["Portugal","포르투갈","se"],GR:["Greece","그리스","se"],MT:["Malta","몰타","se"],CY:["Cyprus","키프로스","se"],
+SI:["Slovenia","슬로베니아","bal"],HR:["Croatia","크로아티아","bal"],BA:["Bosnia and Herzegovina","보스니아 헤르체고비나","bal"],RS:["Serbia","세르비아","bal"],ME:["Montenegro","몬테네그로","bal"],AL:["Albania","알바니아","bal"],MK:["North Macedonia","북마케도니아","bal"],XK:["Kosovo","코소보","bal"],BG:["Bulgaria","불가리아","bal"],
+PL:["Poland","폴란드","ee"],CZ:["Czechia","체코","ee"],SK:["Slovakia","슬로바키아","ee"],HU:["Hungary","헝가리","ee"],RO:["Romania","루마니아","ee"],MD:["Moldova","몰도바","ee"],UA:["Ukraine","우크라이나","ee"],BY:["Belarus","벨라루스","ee"],RU:["Russia","러시아","ee"],
+EG:["Egypt","이집트","naf"],MA:["Morocco","모로코","naf"],TN:["Tunisia","튀니지","naf"],DZ:["Algeria","알제리","naf"],LY:["Libya","리비아","naf"],SD:["Sudan","수단","naf"],
+NG:["Nigeria","나이지리아","waf"],GH:["Ghana","가나","waf"],SN:["Senegal","세네갈","waf"],CI:["Côte d’Ivoire","코트디부아르","waf"],ML:["Mali","말리","waf"],MR:["Mauritania","모리타니","waf"],SL:["Sierra Leone","시에라리온","waf"],BF:["Burkina Faso","부르키나파소","waf"],
+KE:["Kenya","케냐","eaf"],ET:["Ethiopia","에티오피아","eaf"],TZ:["Tanzania","탄자니아","eaf"],UG:["Uganda","우간다","eaf"],RW:["Rwanda","르완다","eaf"],SO:["Somalia","소말리아","eaf"],DJ:["Djibouti","지부티","eaf"],ER:["Eritrea","에리트레아","eaf"],MG:["Madagascar","마다가스카르","eaf"],
+CD:["DR Congo","콩고민주공화국","saf"],CG:["Republic of the Congo","콩고공화국","saf"],AO:["Angola","앙골라","saf"],ZA:["South Africa","남아프리카공화국","saf"],NA:["Namibia","나미비아","saf"],BW:["Botswana","보츠와나","saf"],ZW:["Zimbabwe","짐바브웨","saf"],ZM:["Zambia","잠비아","saf"],MZ:["Mozambique","모잠비크","saf"],MU:["Mauritius","모리셔스","saf"],
+US:["United States","미국","nam"],CA:["Canada","캐나다","nam"],
+MX:["Mexico","멕시코","cam"],CU:["Cuba","쿠바","cam"],PA:["Panama","파나마","cam"],CR:["Costa Rica","코스타리카","cam"],GT:["Guatemala","과테말라","cam"],JM:["Jamaica","자메이카","cam"],DO:["Dominican Republic","도미니카공화국","cam"],PR:["Puerto Rico (US)","푸에르토리코 (미국)","cam"],HT:["Haiti","아이티","cam"],BS:["Bahamas","바하마","cam"],
+AR:["Argentina","아르헨티나","sam"],BR:["Brazil","브라질","sam"],PE:["Peru","페루","sam"],CL:["Chile","칠레","sam"],CO:["Colombia","콜롬비아","sam"],EC:["Ecuador","에콰도르","sam"],BO:["Bolivia","볼리비아","sam"],UY:["Uruguay","우루과이","sam"],PY:["Paraguay","파라과이","sam"],VE:["Venezuela","베네수엘라","sam"],SR:["Suriname","수리남","sam"],
+AU:["Australia","호주","oc"],NZ:["New Zealand","뉴질랜드","oc"],FJ:["Fiji","피지","oc"],PG:["Papua New Guinea","파푸아뉴기니","oc"],NC:["New Caledonia (France)","누벨칼레도니 (프랑스)","oc"],PF:["French Polynesia (France)","프랑스령 폴리네시아","oc"]
+};
+
+/* ---------- Cities: [English, 한글, country, lat, lng, zoom(0=12), aliases, region override] ---------- */
+const RAW=[
+["Seoul","서울","KR",37.5665,126.9780],["Busan","부산","KR",35.1796,129.0756],["Gyeongju","경주","KR",35.8562,129.2247,13],["Jeonju","전주","KR",35.8242,127.1480,13],
+["Tokyo","도쿄","JP",35.6812,139.7671,0,"동경"],["Osaka","오사카","JP",34.6937,135.5023],["Kyoto","교토","JP",35.0116,135.7681,13],["Sapporo","삿포로","JP",43.0618,141.3545],["Nagasaki","나가사키","JP",32.7503,129.8779,13],["Hiroshima","히로시마","JP",34.3853,132.4553,13],
+["Beijing","베이징","CN",39.9042,116.4074,0,"peking|북경"],["Shanghai","상하이","CN",31.2304,121.4737,0,"상해"],["Chongqing","충칭","CN",29.5630,106.5516,0,"중경"],["Lhasa","라싸","CN",29.6500,91.1000,13,"라사"],["Harbin","하얼빈","CN",45.8038,126.5350],["Guilin","구이린","CN",25.2736,110.2900,13,"계림"],["Xi'an","시안","CN",34.3416,108.9398,0,"xian|서안"],
+["Hong Kong","홍콩","HK",22.2855,114.1577,0,"hongkong"],["Macau","마카오","MO",22.1987,113.5439,13,"macao"],["Taipei","타이베이","TW",25.0330,121.5654,0,"타이페이"],["Ulaanbaatar","울란바토르","MN",47.8864,106.9057,0,"ulan bator|울란바타르"],["Pyongyang","평양","KP",39.0392,125.7625],["Vladivostok","블라디보스토크","RU",43.1155,131.8855,0,"블라디보스톡","ea"],
+["Bangkok","방콕","TH",13.7563,100.5018],["Chiang Mai","치앙마이","TH",18.7883,98.9853,13],["Phuket","푸켓","TH",7.8804,98.3923,13],["Hanoi","하노이","VN",21.0278,105.8342],["Ho Chi Minh City","호찌민","VN",10.8231,106.6297,0,"saigon|ho chi minh|사이공|호치민|호찌민시"],["Da Nang","다낭","VN",16.0544,108.2022,13],
+["Singapore","싱가포르","SG",1.2903,103.8520,0,"싱가폴"],["Kuala Lumpur","쿠알라룸푸르","MY",3.1390,101.6869],["Jakarta","자카르타","ID",-6.2088,106.8456],["Denpasar","덴파사르","ID",-8.6705,115.2126,13,"bali|발리"],["Manila","마닐라","PH",14.5995,120.9842],["Cebu","세부","PH",10.3157,123.8854,13,"cebu city"],
+["Phnom Penh","프놈펜","KH",11.5564,104.9282],["Siem Reap","시엠레아프","KH",13.3671,103.8448,13,"씨엠립|시엠립"],["Vientiane","비엔티안","LA",17.9757,102.6331,13,"위앙짠"],["Yangon","양곤","MM",16.8409,96.1735,0,"rangoon|랑군"],["Bandar Seri Begawan","반다르스리브가완","BN",4.9031,114.9398,13],["Dili","딜리","TL",-8.5569,125.5603,13],
+["New Delhi","뉴델리","IN",28.6139,77.2090,0,"delhi|델리"],["Mumbai","뭄바이","IN",19.0760,72.8777,0,"bombay|봄베이"],["Kolkata","콜카타","IN",22.5726,88.3639,0,"calcutta|캘커타"],["Agra","아그라","IN",27.1767,78.0081,13],["Varanasi","바라나시","IN",25.3176,82.9739,13,"benares"],["Jaipur","자이푸르","IN",26.9124,75.7873],["Bengaluru","벵갈루루","IN",12.9716,77.5946,0,"bangalore|방갈로르"],
+["Kathmandu","카트만두","NP",27.7172,85.3240],["Dhaka","다카","BD",23.8103,90.4125],["Colombo","콜롬보","LK",6.9271,79.8612],["Karachi","카라치","PK",24.8607,67.0011],["Lahore","라호르","PK",31.5204,74.3587],["Islamabad","이슬라마바드","PK",33.6844,73.0479],["Malé","말레","MV",4.1755,73.5093,14,"male"],["Thimphu","팀푸","BT",27.4728,89.6390,13,"팀부"],["Kabul","카불","AF",34.5553,69.2075],
+["Tashkent","타슈켄트","UZ",41.2995,69.2401],["Samarkand","사마르칸트","UZ",39.6270,66.9750,13],["Bukhara","부하라","UZ",39.7747,64.4286,13],["Khiva","히바","UZ",41.3775,60.3639,14,"xiva"],["Almaty","알마티","KZ",43.2220,76.8512,0,"alma-ata|알마아타"],["Astana","아스타나","KZ",51.1694,71.4491,0,"nur-sultan|누르술탄"],["Bishkek","비슈케크","KG",42.8746,74.5698,0,"비슈켁"],["Dushanbe","두샨베","TJ",38.5598,68.7870],["Ashgabat","아시가바트","TM",37.9601,58.3261,0,"ashkhabad|아슈하바트"],
+["Tbilisi","트빌리시","GE",41.7151,44.8271],["Batumi","바투미","GE",41.6168,41.6367,13],["Kutaisi","쿠타이시","GE",42.2679,42.6946,13],["Yerevan","예레반","AM",40.1792,44.4991],["Gyumri","귬리","AM",40.7942,43.8453,13,"규므리"],["Baku","바쿠","AZ",40.4093,49.8671],["Ganja","간자","AZ",40.6828,46.3606,13,"gandja"],["Sochi","소치","RU",43.6028,39.7342,13,"","cau"],["Grozny","그로즈니","RU",43.3169,45.6981,13,"","cau"],
+["Istanbul","이스탄불","TR",41.0082,28.9784,0,"constantinople"],["Ankara","앙카라","TR",39.9334,32.8597],["Samsun","삼순","TR",41.2867,36.3300,13],["Izmir","이즈미르","TR",38.4237,27.1428],["Antalya","안탈리아","TR",36.8969,30.7133],["Trabzon","트라브존","TR",41.0027,39.7168,13],
+["Dubai","두바이","AE",25.2048,55.2708],["Abu Dhabi","아부다비","AE",24.4539,54.3773],["Doha","도하","QA",25.2854,51.5310],["Riyadh","리야드","SA",24.7136,46.6753],["Jeddah","제다","SA",21.4858,39.1925,0,"jidda|지다"],["Mecca","메카","SA",21.3891,39.8579,13,"makkah"],["Muscat","무스카트","OM",23.5880,58.3829,0,"masqat"],["Kuwait City","쿠웨이트시티","KW",29.3759,47.9774,0,"kuwait|쿠웨이트"],["Manama","마나마","BH",26.2285,50.5860,13],
+["Tehran","테헤란","IR",35.6892,51.3890],["Isfahan","이스파한","IR",32.6546,51.6680,0,"esfahan"],["Shiraz","시라즈","IR",29.5918,52.5837],["Baghdad","바그다드","IQ",33.3152,44.3661],["Erbil","에르빌","IQ",36.1911,44.0092,0,"arbil|hawler"],["Damascus","다마스쿠스","SY",33.5138,36.2765],["Aleppo","알레포","SY",36.2021,37.1343],["Beirut","베이루트","LB",33.8938,35.5018,13],["Amman","암만","JO",31.9454,35.9284],["Jerusalem","예루살렘","IP",31.7683,35.2137,13],["Tel Aviv","텔아비브","IL",32.0853,34.7818,0,"tel aviv-yafo|텔아비브야파"],["Sanaa","사나","YE",15.3694,44.1910,0,"sana'a|sana"],
+["London","런던","GB",51.5074,-0.1278],["Bath","바스","GB",51.3811,-2.3590,14],["Edinburgh","에든버러","GB",55.9533,-3.1883,13,"에딘버러"],["Manchester","맨체스터","GB",53.4808,-2.2426],["Liverpool","리버풀","GB",53.4084,-2.9916],["Oxford","옥스퍼드","GB",51.7520,-1.2577,14,"옥스포드"],["Dublin","더블린","IE",53.3498,-6.2603],["Cork","코크","IE",51.8985,-8.4756,13],
+["Paris","파리","FR",48.8566,2.3522],["Marseille","마르세유","FR",43.2965,5.3698,0,"marseilles"],["Lyon","리옹","FR",45.7640,4.8357],["Nice","니스","FR",43.7102,7.2620,13],["Bordeaux","보르도","FR",44.8378,-0.5792],["Strasbourg","스트라스부르","FR",48.5734,7.7521,13],["Mont-Saint-Michel","몽생미셸","FR",48.6361,-1.5115,15,"mont saint michel"],
+["Amsterdam","암스테르담","NL",52.3676,4.9041],["Rotterdam","로테르담","NL",51.9244,4.4777],["Brussels","브뤼셀","BE",50.8503,4.3517,0,"bruxelles|brussel"],["Bruges","브뤼헤","BE",51.2093,3.2247,14,"brugge"],["Luxembourg","룩셈부르크","LU",49.6116,6.1319,13,"luxembourg city"],
+["Berlin","베를린","DE",52.5200,13.4050],["Munich","뮌헨","DE",48.1351,11.5820,0,"münchen|munchen"],["Hamburg","함부르크","DE",53.5511,9.9937],["Cologne","쾰른","DE",50.9375,6.9603,0,"köln|koln"],["Frankfurt","프랑크푸르트","DE",50.1109,8.6821,0,"frankfurt am main"],["Dresden","드레스덴","DE",51.0504,13.7373,13],["Heidelberg","하이델베르크","DE",49.3988,8.6724,14],
+["Zurich","취리히","CH",47.3769,8.5417,0,"zürich|zuerich"],["Geneva","제네바","CH",46.2044,6.1432,0,"genève|geneve|genf"],["Bern","베른","CH",46.9480,7.4474,14,"berne"],["Vienna","빈","AT",48.2082,16.3738,0,"wien|비엔나"],["Salzburg","잘츠부르크","AT",47.8095,13.0550,13],["Hallstatt","할슈타트","AT",47.5622,13.6493,15],["Monaco","모나코","MC",43.7384,7.4246,14,"monte carlo|몬테카를로"],
+["Stockholm","스톡홀름","SE",59.3293,18.0686],["Gothenburg","예테보리","SE",57.7089,11.9746,0,"göteborg|goteborg|고텐부르크"],["Oslo","오슬로","NO",59.9139,10.7522],["Bergen","베르겐","NO",60.3913,5.3221,13],["Tromsø","트롬쇠","NO",69.6492,18.9553,13,"tromso"],["Copenhagen","코펜하겐","DK",55.6761,12.5683,0,"københavn|kobenhavn"],["Aarhus","오르후스","DK",56.1629,10.2039,13,"århus|오르후스"],
+["Helsinki","헬싱키","FI",60.1699,24.9384],["Reykjavík","레이캬비크","IS",64.1466,-21.9426,13,"reykjavik|레이카비크"],["Tallinn","탈린","EE",59.4370,24.7536,13],["Riga","리가","LV",56.9496,24.1052],["Vilnius","빌뉴스","LT",54.6872,25.2797],
+["Rome","로마","IT",41.9028,12.4964,0,"roma"],["Venice","베네치아","IT",45.4408,12.3155,13,"venezia|베니스"],["Florence","피렌체","IT",43.7696,11.2558,13,"firenze|플로렌스"],["Milan","밀라노","IT",45.4642,9.1900,0,"milano|밀란"],["Naples","나폴리","IT",40.8518,14.2681,0,"napoli"],["Palermo","팔레르모","IT",38.1157,13.3615],["Turin","토리노","IT",45.0703,7.6869,0,"torino"],
+["Madrid","마드리드","ES",40.4168,-3.7038],["Barcelona","바르셀로나","ES",41.3874,2.1686],["Seville","세비야","ES",37.3891,-5.9845,0,"sevilla|세빌리아"],["Granada","그라나다","ES",37.1773,-3.5986,13],["Valencia","발렌시아","ES",39.4699,-0.3763],["Bilbao","빌바오","ES",43.2630,-2.9350,13],["Palma","팔마","ES",39.5696,2.6502,13,"palma de mallorca|mallorca|마요르카"],
+["Lisbon","리스본","PT",38.7223,-9.1393,0,"lisboa"],["Porto","포르투","PT",41.1579,-8.6291,13,"oporto|포르토"],["Athens","아테네","GR",37.9838,23.7275,0,"athina"],["Thessaloniki","테살로니키","GR",40.6401,22.9444],["Santorini","산토리니","GR",36.4167,25.4318,13,"thira|fira|thera"],["Valletta","발레타","MT",35.8989,14.5146,14],["Nicosia","니코시아","CY",35.1856,33.3823,0,"lefkosia"],
+["Ljubljana","류블랴나","SI",46.0569,14.5058,13],["Zagreb","자그레브","HR",45.8150,15.9819],["Split","스플리트","HR",43.5081,16.4402,13],["Dubrovnik","두브로브니크","HR",42.6507,18.0944,14],["Sarajevo","사라예보","BA",43.8563,18.4131,13],["Mostar","모스타르","BA",43.3438,17.8078,14],
+["Belgrade","베오그라드","RS",44.7866,20.4489,0,"beograd"],["Podgorica","포드고리차","ME",42.4304,19.2594,13],["Kotor","코토르","ME",42.4247,18.7712,14],["Tirana","티라나","AL",41.3275,19.8187,13],["Skopje","스코페","MK",41.9981,21.4254,13,"스코피예"],["Pristina","프리슈티나","XK",42.6629,21.1655,13,"prishtina|priština"],["Sofia","소피아","BG",42.6977,23.3219],
+["Warsaw","바르샤바","PL",52.2297,21.0122,0,"warszawa"],["Kraków","크라쿠프","PL",50.0647,19.9450,0,"krakow|cracow|크라코프"],["Gdańsk","그단스크","PL",54.3520,18.6466,0,"gdansk|danzig"],["Wrocław","브로츠와프","PL",51.1079,17.0385,0,"wroclaw|breslau|브로츠와브"],
+["Prague","프라하","CZ",50.0755,14.4378,0,"praha"],["Brno","브르노","CZ",49.1951,16.6068,13],["Český Krumlov","체스키크룸로프","CZ",48.8127,14.3175,15,"cesky krumlov|체스키 크룸로프"],["Bratislava","브라티슬라바","SK",48.1486,17.1077,0,"pozsony|pressburg"],["Budapest","부다페스트","HU",47.4979,19.0402],
+["Bucharest","부쿠레슈티","RO",44.4268,26.1025,0,"bucuresti|부카레스트"],["Cluj-Napoca","클루지나포카","RO",46.7712,23.6236,13,"cluj|클루지"],["Chișinău","키시너우","MD",47.0105,28.8638,0,"chisinau|kishinev|키시뇨프"],["Kyiv","키이우","UA",50.4501,30.5234,0,"kiev|키예프"],["Lviv","리비우","UA",49.8397,24.0297,13,"lvov|lwów|르비우"],["Odesa","오데사","UA",46.4825,30.7233,0,"odessa"],["Minsk","민스크","BY",53.9006,27.5590],
+["Moscow","모스크바","RU",55.7558,37.6173,0,"moskva"],["Saint Petersburg","상트페테르부르크","RU",59.9311,30.3609,0,"st petersburg|st. petersburg|petersburg|leningrad|페테르부르크|레닌그라드"],["Kaliningrad","칼리닌그라드","RU",54.7104,20.4522,0,"königsberg|konigsberg"],["Kazan","카잔","RU",55.7961,49.1064],
+["Cairo","카이로","EG",30.0444,31.2357],["Alexandria","알렉산드리아","EG",31.2001,29.9187],["Luxor","룩소르","EG",25.6872,32.6396,13],["Aswan","아스완","EG",24.0889,32.8998,13],["Casablanca","카사블랑카","MA",33.5731,-7.5898],["Marrakesh","마라케시","MA",31.6295,-7.9811,0,"marrakech|마라케쉬"],["Fez","페스","MA",34.0181,-5.0078,13,"fes|페즈"],["Rabat","라바트","MA",34.0209,-6.8416],
+["Tunis","튀니스","TN",36.8065,10.1815],["Algiers","알제","DZ",36.7538,3.0588,0,"alger"],["Tripoli","트리폴리","LY",32.8872,13.1913],["Khartoum","하르툼","SD",15.5007,32.5599,0,"카르툼"],
+["Lagos","라고스","NG",6.5244,3.3792],["Abuja","아부자","NG",9.0765,7.3986],["Accra","아크라","GH",5.6037,-0.1870],["Dakar","다카르","SN",14.7167,-17.4677],["Abidjan","아비장","CI",5.3600,-4.0083],["Bamako","바마코","ML",12.6392,-8.0029],["Timbuktu","팀북투","ML",16.7666,-3.0026,14,"tombouctou|통북투"],["Nouakchott","누악쇼트","MR",18.0735,-15.9582],["Freetown","프리타운","SL",8.4657,-13.2317],["Ouagadougou","와가두구","BF",12.3714,-1.5197],
+["Nairobi","나이로비","KE",-1.2921,36.8219],["Mombasa","몸바사","KE",-4.0435,39.6682,13],["Addis Ababa","아디스아바바","ET",9.0300,38.7400,0,"addis abeba"],["Dar es Salaam","다르에스살람","TZ",-6.7924,39.2083],["Zanzibar City","잔지바르","TZ",-6.1659,39.2026,14,"zanzibar|stone town|스톤타운"],["Kampala","캄팔라","UG",0.3476,32.5825],["Kigali","키갈리","RW",-1.9441,30.0619],["Mogadishu","모가디슈","SO",2.0469,45.3182],["Djibouti","지부티","DJ",11.5721,43.1456,13,"djibouti city"],["Asmara","아스마라","ER",15.3229,38.9251,13],["Antananarivo","안타나나리보","MG",-18.8792,47.5079,0,"tana|타나"],
+["Kinshasa","킨샤사","CD",-4.4419,15.2663],["Brazzaville","브라자빌","CG",-4.2634,15.2429],["Luanda","루안다","AO",-8.8390,13.2894],["Cape Town","케이프타운","ZA",-33.9249,18.4241],["Johannesburg","요하네스버그","ZA",-26.2041,28.0473,0,"joburg|jo'burg"],["Durban","더반","ZA",-29.8587,31.0218],["Windhoek","빈트후크","NA",-22.5609,17.0658,13],["Gaborone","가보로네","BW",-24.6282,25.9231],["Harare","하라레","ZW",-17.8252,31.0335],["Victoria Falls","빅토리아폴스","ZW",-17.9243,25.8572,14,"빅토리아 폭포"],["Lusaka","루사카","ZM",-15.3875,28.3228],["Maputo","마푸투","MZ",-25.9692,32.5732],["Port Louis","포트루이스","MU",-20.1609,57.5012,13],
+["New York","뉴욕","US",40.7128,-74.0060,0,"new york city|nyc"],["Los Angeles","로스앤젤레스","US",34.0522,-118.2437,0,"la|엘에이|로스엔젤레스"],["San Francisco","샌프란시스코","US",37.7749,-122.4194],["Chicago","시카고","US",41.8781,-87.6298],["Washington, D.C.","워싱턴 D.C.","US",38.9072,-77.0369,0,"washington|washington dc|dc|워싱턴|워싱턴디씨"],["Boston","보스턴","US",42.3601,-71.0589],["Seattle","시애틀","US",47.6062,-122.3321],["Miami","마이애미","US",25.7617,-80.1918],
+["Las Vegas","라스베이거스","US",36.1699,-115.1398,0,"vegas|라스베가스"],["New Orleans","뉴올리언스","US",29.9511,-90.0715],["Denver","덴버","US",39.7392,-104.9903],["Honolulu","호놀룰루","US",21.3069,-157.8583],["Anchorage","앵커리지","US",61.2181,-149.9003],["Salt Lake City","솔트레이크시티","US",40.7608,-111.8910],["Phoenix","피닉스","US",33.4484,-112.0740],["Pittsburgh","피츠버그","US",40.4406,-79.9959],
+["Toronto","토론토","CA",43.6532,-79.3832],["Vancouver","밴쿠버","CA",49.2827,-123.1207],["Montreal","몬트리올","CA",45.5017,-73.5673,0,"montréal"],["Quebec City","퀘벡시티","CA",46.8139,-71.2080,13,"quebec|québec|퀘벡"],["Ottawa","오타와","CA",45.4215,-75.6972],["Calgary","캘거리","CA",51.0447,-114.0719],
+["Mexico City","멕시코시티","MX",19.4326,-99.1332,0,"cdmx|ciudad de mexico"],["Cancún","칸쿤","MX",21.1619,-86.8515,0,"cancun"],["Guadalajara","과달라하라","MX",20.6597,-103.3496],["Oaxaca","오악사카","MX",17.0732,-96.7266,13,"oaxaca de juarez"],["Havana","아바나","CU",23.1136,-82.3666,0,"la habana|habana|하바나"],["Panama City","파나마시티","PA",8.9824,-79.5199,0,"panama"],["San José","산호세","CR",9.9281,-84.0907,0,"san jose"],["Guatemala City","과테말라시티","GT",14.6349,-90.5069,0,"guatemala"],
+["Kingston","킹스턴","JM",17.9712,-76.7936],["Santo Domingo","산토도밍고","DO",18.4861,-69.9312],["San Juan","산후안","PR",18.4655,-66.1057],["Port-au-Prince","포르토프랭스","HT",18.5944,-72.3074],["Nassau","나소","BS",25.0443,-77.3504,13],
+["Buenos Aires","부에노스아이레스","AR",-34.6037,-58.3816],["Córdoba","코르도바","AR",-31.4201,-64.1888,0,"cordoba"],["Ushuaia","우수아이아","AR",-54.8019,-68.3030,13],["Rio de Janeiro","리우데자네이루","BR",-22.9068,-43.1729,0,"rio|리우"],["São Paulo","상파울루","BR",-23.5505,-46.6333,0,"sao paulo|상파울로"],["Brasília","브라질리아","BR",-15.7939,-47.8828,0,"brasilia"],["Salvador","사우바도르","BR",-12.9777,-38.5016,0,"살바도르"],["Manaus","마나우스","BR",-3.1190,-60.0217],
+["Lima","리마","PE",-12.0464,-77.0428],["Cusco","쿠스코","PE",-13.5320,-71.9675,13,"cuzco"],["Santiago","산티아고","CL",-33.4489,-70.6693,0,"santiago de chile"],["Valparaíso","발파라이소","CL",-33.0472,-71.6127,13,"valparaiso"],["Bogotá","보고타","CO",4.7110,-74.0721,0,"bogota"],["Cartagena","카르타헤나","CO",10.3910,-75.4794,13],["Medellín","메데인","CO",6.2442,-75.5812,0,"medellin|메데진"],
+["Quito","키토","EC",-0.1807,-78.4678],["La Paz","라파스","BO",-16.4897,-68.1193],["Montevideo","몬테비데오","UY",-34.9011,-56.1645],["Asunción","아순시온","PY",-25.2637,-57.5759,0,"asuncion"],["Caracas","카라카스","VE",10.4806,-66.9036],["Paramaribo","파라마리보","SR",5.8520,-55.2038,13],
+["Sydney","시드니","AU",-33.8688,151.2093],["Melbourne","멜버른","AU",-37.8136,144.9631,0,"멜번"],["Brisbane","브리즈번","AU",-27.4698,153.0251],["Perth","퍼스","AU",-31.9505,115.8605],["Adelaide","애들레이드","AU",-34.9285,138.6007],["Canberra","캔버라","AU",-35.2809,149.1300],["Darwin","다윈","AU",-12.4634,130.8456,13],["Hobart","호바트","AU",-42.8821,147.3272,13],["Cairns","케언스","AU",-16.9186,145.7781,13],
+["Auckland","오클랜드","NZ",-36.8485,174.7633],["Wellington","웰링턴","NZ",-41.2865,174.7762],["Queenstown","퀸스타운","NZ",-45.0312,168.6626,13],["Christchurch","크라이스트처치","NZ",-43.5321,172.6362],["Suva","수바","FJ",-18.1248,178.4501,13],["Port Moresby","포트모르즈비","PG",-9.4438,147.1803],["Nouméa","누메아","NC",-22.2558,166.4505,13,"noumea"],["Papeete","파페에테","PF",-17.5516,-149.5585,13,"tahiti|타히티"]
+];
+const CITIES=RAW.map(r=>{const c=C[r[2]];return{en:r[0],ko:r[1],lat:r[3],lng:r[4],zoom:r[5]||12,aliases:(r[6]||"").split("|").filter(Boolean),region:r[7]||c[2],cEn:c[0],cKo:c[1]}});
+/* ---------- HARD 모드 전용 소도시 ---------- */
+Object.assign(C,{
+FO:["Faroe Islands (Denmark)","페로 제도 (덴마크)","ne"],TG:["Togo","토고","waf"],BJ:["Benin","베냉","waf"],GM:["Gambia","감비아","waf"],CV:["Cabo Verde","카보베르데","waf"],
+KM:["Comoros","코모로","eaf"],RE:["Réunion (France)","레위니옹 (프랑스)","saf"],CW:["Curaçao (Netherlands)","퀴라소 (네덜란드)","cam"],BB:["Barbados","바베이도스","cam"],
+HN:["Honduras","온두라스","cam"],SV:["El Salvador","엘살바도르","cam"],NI:["Nicaragua","니카라과","cam"],BZ:["Belize","벨리즈","cam"],TT:["Trinidad and Tobago","트리니다드 토바고","cam"],
+GY:["Guyana","가이아나","sam"],WS:["Samoa","사모아","oc"],TO:["Tonga","통가","oc"],VU:["Vanuatu","바누아투","oc"],SB:["Solomon Islands","솔로몬 제도","oc"],GU:["Guam (US)","괌 (미국)","oc"]
+});
+const HARD_RAW=[
+["Yeosu","여수","KR",34.7604,127.6622,13],["Gangneung","강릉","KR",37.7519,128.8761,13],["Andong","안동","KR",36.5684,128.7294,13],["Pohang","포항","KR",36.0190,129.3435,13],["Mokpo","목포","KR",34.8118,126.3922,13],["Chuncheon","춘천","KR",37.8813,127.7298,13],["Tongyeong","통영","KR",34.8544,128.4331,13],["Suwon","수원","KR",37.2636,127.0286,13],["Sokcho","속초","KR",38.2070,128.5918,13],["Jeju City","제주시","KR",33.4996,126.5312,13,"jeju|제주"],
+["Kanazawa","가나자와","JP",36.5613,136.6562,13],["Hakodate","하코다테","JP",41.7687,140.7288,13],["Matsumoto","마쓰모토","JP",36.2380,137.9720,13,"마츠모토"],["Nara","나라","JP",34.6851,135.8048,13],["Kobe","고베","JP",34.6901,135.1955,13],["Fukuoka","후쿠오카","JP",33.5904,130.4017],["Sendai","센다이","JP",38.2682,140.8694],["Naha","나하","JP",26.2124,127.6809,13,"okinawa|오키나와"],["Kagoshima","가고시마","JP",31.5966,130.5571,13],["Takayama","다카야마","JP",36.1461,137.2522,14],
+["Suzhou","쑤저우","CN",31.2989,120.5853,0,"소주"],["Pingyao","핑야오","CN",37.2021,112.1772,14],["Dali","다리","CN",25.6065,100.2676,13],["Lijiang","리장","CN",26.8721,100.2299,13],["Hangzhou","항저우","CN",30.2741,120.1551,0,"항주"],["Qingdao","칭다오","CN",36.0671,120.3826,0,"청도"],["Xiamen","샤먼","CN",24.4798,118.0894,0,"하문"],["Kashgar","카슈가르","CN",39.4704,75.9898,13,"kashi|카스"],["Zhangjiajie","장자제","CN",29.1171,110.4792,13,"장가계"],["Urumqi","우루무치","CN",43.8256,87.6168,0,"ürümqi"],["Shenzhen","선전","CN",22.5431,114.0579,0,"심천"],
+["Tainan","타이난","TW",22.9999,120.2270,13],["Kaohsiung","가오슝","TW",22.6273,120.3014],["Kharkhorin","하르호린","MN",47.1975,102.8238,14,"karakorum|카라코룸"],["Irkutsk","이르쿠츠크","RU",52.2870,104.3050,0,"","ea"],
+["Luang Prabang","루앙프라방","LA",19.8856,102.1347,14],["Hoi An","호이안","VN",15.8801,108.3380,14,"hội an"],["Hue","후에","VN",16.4637,107.5909,13,"huế"],["Ha Long","하롱","VN",20.9517,107.0800,13,"halong|하롱베이"],["Malacca","믈라카","MY",2.1896,102.2501,13,"melaka|말라카"],["George Town","조지타운","MY",5.4141,100.3288,13,"penang|페낭"],["Kota Kinabalu","코타키나발루","MY",5.9804,116.0735,13],["Yogyakarta","족자카르타","ID",-7.7956,110.3695,13,"jogja|jogjakarta|욕야카르타"],["Bagan","바간","MM",21.1717,94.8585,13],["Mandalay","만달레이","MM",21.9588,96.0891],["Battambang","바탐방","KH",13.0957,103.2022,13],["Ayutthaya","아유타야","TH",14.3532,100.5689,13],["Davao","다바오","PH",7.1907,125.4553,0,"davao city"],["Vigan","비간","PH",17.5747,120.3869,14],
+["Udaipur","우다이푸르","IN",24.5854,73.7125,13],["Jodhpur","조드푸르","IN",26.2389,73.0243,13],["Jaisalmer","자이살메르","IN",26.9157,70.9083,14],["Leh","레","IN",34.1526,77.5771,14],["Amritsar","암리차르","IN",31.6340,74.8723,13],["Panaji","파나지","IN",15.4909,73.8278,13,"panjim|goa|고아"],["Kochi","코치","IN",9.9312,76.2673,0,"cochin"],["Pokhara","포카라","NP",28.2096,83.9856,13],["Kandy","캔디","LK",7.2906,80.6337,13],["Galle","골","LK",6.0535,80.2210,14,"갈레"],["Chittagong","치타공","BD",22.3569,91.7832,0,"chattogram"],["Peshawar","페샤와르","PK",34.0151,71.5249],["Herat","헤라트","AF",34.3529,62.2040,13],
+["Osh","오시","KG",40.5283,72.7985,13],["Karakol","카라콜","KG",42.4907,78.3936,14],["Turkistan","투르키스탄","KZ",43.2973,68.2517,13,"turkestan"],["Shymkent","심켄트","KZ",42.3417,69.5901],["Khujand","후잔드","TJ",40.2826,69.6222,13],["Mary","마리","TM",37.5935,61.8300,13,"merv"],
+["Sighnaghi","시그나기","GE",41.6197,45.9214,15],["Mestia","메스티아","GE",43.0453,42.7291,15],["Dilijan","딜리잔","AM",40.7417,44.8631,14],["Sheki","셰키","AZ",41.1919,47.1706,14,"şəki|shaki"],["Vladikavkaz","블라디캅카스","RU",43.0367,44.6678,13,"","cau"],
+["Göreme","괴레메","TR",38.6431,34.8289,15,"goreme|cappadocia|카파도키아"],["Bodrum","보드룸","TR",37.0344,27.4305,13],["Mardin","마르딘","TR",37.3212,40.7245,14],["Konya","콘야","TR",37.8746,32.4932],["Fethiye","페티예","TR",36.6213,29.1164,13],["Yazd","야즈드","IR",31.8974,54.3569,13],["Tabriz","타브리즈","IR",38.0962,46.2738],["Mashhad","마슈하드","IR",36.2605,59.6168],["Medina","메디나","SA",24.4686,39.6142,0,"madinah|al madinah"],["AlUla","알울라","SA",26.6085,37.9232,14,"al ula|al-ula"],["Nizwa","니즈와","OM",22.9333,57.5333,14],["Salalah","살랄라","OM",17.0151,54.0924,13],["Wadi Musa","와디무사","JO",30.3216,35.4793,14,"petra|페트라"],["Aqaba","아카바","JO",29.5321,35.0063,13],["Haifa","하이파","IL",32.7940,34.9896,13],["Byblos","비블로스","LB",34.1230,35.6519,15,"jbeil|주바일"],["Ras Al Khaimah","라스알카이마","AE",25.8007,55.9762,13,"rak"],["Sharjah","샤르자","AE",25.3463,55.4209],
+["Colmar","콜마르","FR",48.0794,7.3585,14],["Annecy","안시","FR",45.8992,6.1294,14],["Carcassonne","카르카손","FR",43.2130,2.3491,14],["Avignon","아비뇽","FR",43.9493,4.8055,14],["Saint-Malo","생말로","FR",48.6493,-2.0257,14,"saint malo|st malo"],["Toulouse","툴루즈","FR",43.6047,1.4442],["Chamonix","샤모니","FR",45.9237,6.8694,14],["Biarritz","비아리츠","FR",43.4832,-1.5586,14],
+["Ghent","겐트","BE",51.0543,3.7174,13,"gent|헨트"],["Utrecht","위트레흐트","NL",52.0907,5.1214,13],["Giethoorn","히트호른","NL",52.7400,6.0786,15],["Rothenburg ob der Tauber","로텐부르크","DE",49.3772,10.1867,15,"rothenburg"],["Bamberg","밤베르크","DE",49.8988,10.9028,14],["Lindau","린다우","DE",47.5460,9.6840,15],
+["Interlaken","인터라켄","CH",46.6863,7.8632,14],["Lucerne","루체른","CH",47.0502,8.3093,14,"luzern"],["Zermatt","체르마트","CH",46.0207,7.7491,15],["Innsbruck","인스브루크","AT",47.2692,11.4041,13],["Graz","그라츠","AT",47.0707,15.4395,13],
+["York","요크","GB",53.9590,-1.0815,14],["Cambridge","케임브리지","GB",52.2053,0.1218,14,"캠브리지"],["Inverness","인버네스","GB",57.4778,-4.2247,13],["Brighton","브라이턴","GB",50.8225,-0.1372,13,"브라이튼"],["Belfast","벨파스트","GB",54.5973,-5.9301],["Cardiff","카디프","GB",51.4816,-3.1791,13],["Galway","골웨이","IE",53.2707,-9.0568,14],
+["Ålesund","올레순","NO",62.4722,6.1495,14,"alesund|aalesund"],["Reine","레이네","NO",67.9326,13.0889,15,"lofoten|로포텐"],["Flåm","플롬","NO",60.8628,7.1135,15,"flam"],["Visby","비스뷔","SE",57.6348,18.2948,14],["Kiruna","키루나","SE",67.8558,20.2253,14],["Uppsala","웁살라","SE",59.8586,17.6389,13],["Odense","오덴세","DK",55.4038,10.4024,13],["Turku","투르쿠","FI",60.4518,22.2666,13],["Rovaniemi","로바니에미","FI",66.5039,25.7294,13],["Tartu","타르투","EE",58.3776,26.7290,13],["Akureyri","아퀴레이리","IS",65.6835,-18.0878,14],["Tórshavn","토르스하운","FO",62.0079,-6.7900,14,"torshavn"],
+["Siena","시에나","IT",43.3188,11.3308,14],["Pisa","피사","IT",43.7228,10.4017,14],["Bologna","볼로냐","IT",44.4949,11.3426,13],["Verona","베로나","IT",45.4384,10.9916,14],["Amalfi","아말피","IT",40.6340,14.6027,15],["Matera","마테라","IT",40.6664,16.6043,15],["Cagliari","칼리아리","IT",39.2238,9.1217,13],["Genoa","제노바","IT",44.4056,8.9463,13,"genova"],["Bari","바리","IT",41.1171,16.8719,13],
+["Toledo","톨레도","ES",39.8628,-4.0273,14],["Ronda","론다","ES",36.7423,-5.1671,15],["San Sebastián","산세바스티안","ES",43.3183,-1.9812,14,"san sebastian|donostia"],["Salamanca","살라망카","ES",40.9701,-5.6635,14],["Málaga","말라가","ES",36.7213,-4.4214,13,"malaga"],["Santiago de Compostela","산티아고데콤포스텔라","ES",42.8782,-8.5448,14,"compostela"],["Las Palmas","라스팔마스","ES",28.1235,-15.4363,13,"gran canaria|그란카나리아"],
+["Sintra","신트라","PT",38.8029,-9.3817,14],["Coimbra","코임브라","PT",40.2033,-8.4103,14],["Funchal","푼샬","PT",32.6669,-16.9241,13,"madeira|마데이라"],["Faro","파루","PT",37.0194,-7.9322,14],
+["Mykonos","미코노스","GR",37.4467,25.3289,14],["Chania","하니아","GR",35.5138,24.0180,14,"hania|crete|크레타"],["Rhodes","로도스","GR",36.4341,28.2176,14,"rodos"],["Corfu","케르키라","GR",39.6243,19.9217,14,"kerkyra|코르푸"],["Kalambaka","칼람바카","GR",39.7059,21.6262,14,"kalabaka|meteora|메테오라"],["Mdina","임디나","MT",35.8857,14.4025,15],["Limassol","리마솔","CY",34.7071,33.0226,13],
+["Ohrid","오흐리드","MK",41.1172,20.8016,14],["Berat","베라트","AL",40.7058,19.9522,15],["Gjirokastër","지로카스터르","AL",40.0758,20.1389,15,"gjirokaster"],["Budva","부드바","ME",42.2911,18.8403,14],["Zadar","자다르","HR",44.1194,15.2314,14],["Korčula","코르출라","HR",42.9597,17.1350,15,"korcula"],["Rovinj","로비니","HR",45.0812,13.6387,15],["Piran","피란","SI",45.5283,13.5683,15],["Bled","블레드","SI",46.3683,14.1146,15],["Plovdiv","플로브디프","BG",42.1354,24.7453,13],["Veliko Tarnovo","벨리코투르노보","BG",43.0757,25.6172,14],["Novi Sad","노비사드","RS",45.2671,19.8335,13],["Prizren","프리즈렌","XK",42.2139,20.7397,14],
+["Brașov","브라쇼브","RO",45.6427,25.5887,13,"brasov"],["Sibiu","시비우","RO",45.7983,24.1256,14],["Sighișoara","시기쇼아라","RO",46.2197,24.7964,15,"sighisoara"],["Constanța","콘스탄차","RO",44.1598,28.6348,13,"constanta"],["Zakopane","자코파네","PL",49.2992,19.9496,14],["Toruń","토룬","PL",53.0138,18.5984,14,"torun"],["Poznań","포즈난","PL",52.4064,16.9252,13,"poznan"],["Kutná Hora","쿠트나호라","CZ",49.9484,15.2682,15,"kutna hora"],["Karlovy Vary","카를로비바리","CZ",50.2319,12.8720,14,"karlsbad"],["Košice","코시체","SK",48.7164,21.2611,13,"kosice"],["Eger","에게르","HU",47.9025,20.3772,14],["Pécs","페치","HU",46.0727,18.2323,14,"pecs"],
+["Kamianets-Podilskyi","카먀네츠포딜스키","UA",48.6845,26.5855,14,"kamianets|kamenets-podolsky"],["Kharkiv","하르키우","UA",49.9935,36.2304,0,"kharkov|하리코프"],["Brest","브레스트","BY",52.0976,23.7341,13],["Murmansk","무르만스크","RU",68.9585,33.0827,13],["Suzdal","수즈달","RU",56.4195,40.4498,14],["Veliky Novgorod","벨리키노브고로드","RU",58.5215,31.2755,13,"novgorod|노브고로드"],["Yekaterinburg","예카테린부르크","RU",56.8389,60.6057,0,"ekaterinburg"],
+["Chefchaouen","셰프샤우엔","MA",35.1688,-5.2636,15,"chaouen|쉐프샤우엔"],["Essaouira","에사우이라","MA",31.5085,-9.7595,14],["Tangier","탕헤르","MA",35.7595,-5.8340,13,"tanger|tangiers"],["Ouarzazate","와르자자트","MA",30.9189,-6.8934,14],["Sidi Bou Said","시디부사이드","TN",36.8687,10.3417,15],["Kairouan","카이르완","TN",35.6781,10.0963,14],["Houmt Souk","훔트수크","TN",33.8750,10.8575,14,"djerba|jerba|제르바"],["Ghardaïa","가르다이아","DZ",32.4840,3.6735,14,"ghardaia"],["Siwa","시와","EG",29.2032,25.5195,14,"siwa oasis"],["Sharm El Sheikh","샤름엘셰이크","EG",27.9158,34.3300,13,"sharm"],["Hurghada","후르가다","EG",27.2579,33.8116,13],["Port Said","포트사이드","EG",31.2653,32.3019,13],
+["Saint-Louis","생루이","SN",16.0326,-16.4818,14,"saint louis"],["Djenné","젠네","ML",13.9061,-4.5530,15,"djenne"],["Cape Coast","케이프코스트","GH",5.1053,-1.2466,14],["Kumasi","쿠마시","GH",6.6885,-1.6244],["Lomé","로메","TG",6.1725,1.2314,13,"lome"],["Cotonou","코토누","BJ",6.3703,2.3912,13],["Kano","카노","NG",12.0022,8.5920],["Banjul","반줄","GM",13.4549,-16.5790,14],["Praia","프라이아","CV",14.9330,-23.5133,14],
+["Lamu","라무","KE",-2.2717,40.9020,15],["Arusha","아루샤","TZ",-3.3869,36.6830,13],["Lalibela","랄리벨라","ET",12.0317,39.0476,15],["Gondar","곤다르","ET",12.6030,37.4521,14,"gonder"],["Hargeisa","하르게이사","SO",9.5600,44.0650,13],["Jinja","진자","UG",0.4244,33.2042,13],["Moroni","모로니","KM",-11.7022,43.2551,14],["Toamasina","토아마시나","MG",-18.1443,49.3958,13,"tamatave"],
+["Swakopmund","스와코프문트","NA",-22.6784,14.5260,14],["Stellenbosch","스텔렌보스","ZA",-33.9321,18.8602,14],["Gqeberha","그케베르하","ZA",-33.9608,25.6022,13,"port elizabeth|포트엘리자베스"],["Maun","마운","BW",-19.9833,23.4167,14],["Bulawayo","불라와요","ZW",-20.1325,28.6265,13],["Livingstone","리빙스턴","ZM",-17.8419,25.8543,14],["Inhambane","이냠바네","MZ",-23.8650,35.3833,14],["Lubumbashi","루붐바시","CD",-11.6609,27.4794,13],["Goma","고마","CD",-1.6792,29.2228,13],["Mahébourg","마에부르","MU",-20.4081,57.7000,15,"mahebourg"],["Saint-Denis","생드니","RE",-20.8789,55.4481,13,"saint denis|reunion|레위니옹"],
+["Santa Fe","샌타페이","US",35.6870,-105.9378,13,"santa fé|산타페"],["Savannah","서배너","US",32.0809,-81.0912,13,"사바나"],["Key West","키웨스트","US",24.5551,-81.7800,14],["Charleston","찰스턴","US",32.7765,-79.9311,13,"찰스톤"],["Austin","오스틴","US",30.2672,-97.7431],["Nashville","내슈빌","US",36.1627,-86.7816,0,"내쉬빌"],["San Diego","샌디에이고","US",32.7157,-117.1611,0,"샌디에고"],["Portland","포틀랜드","US",45.5152,-122.6784],["Juneau","주노","US",58.3019,-134.4197,13],["Boulder","볼더","US",40.0150,-105.2705,13],["Sedona","세도나","US",34.8697,-111.7610,14],["Aspen","애스펀","US",39.1911,-106.8175,14,"아스펜"],["Minneapolis","미니애폴리스","US",44.9778,-93.2650],["Detroit","디트로이트","US",42.3314,-83.0458],["Philadelphia","필라델피아","US",39.9526,-75.1652],["Atlanta","애틀랜타","US",33.7490,-84.3880,0,"애틀란타"],["Houston","휴스턴","US",29.7604,-95.3698],
+["Halifax","핼리팩스","CA",44.6488,-63.5752,13],["Banff","밴프","CA",51.1784,-115.5708,14],["Whitehorse","화이트호스","CA",60.7212,-135.0568,13],["Yellowknife","옐로나이프","CA",62.4540,-114.3718,13],["St. John's","세인트존스","CA",47.5615,-52.7126,13,"st johns|saint johns"],["Winnipeg","위니펙","CA",49.8951,-97.1384],["Edmonton","에드먼턴","CA",53.5461,-113.4938,0,"에드먼튼"],
+["Guanajuato","과나후아토","MX",21.0190,-101.2574,14],["San Miguel de Allende","산미겔데아옌데","MX",20.9144,-100.7452,14,"san miguel"],["Mérida","메리다","MX",20.9674,-89.5926,0,"merida"],["Puerto Vallarta","푸에르토바야르타","MX",20.6534,-105.2253,13],["Tulum","툴룸","MX",20.2114,-87.4654,14],["San Cristóbal de las Casas","산크리스토발데라스카사스","MX",16.7370,-92.6376,14,"san cristobal"],["Antigua Guatemala","안티과과테말라","GT",14.5586,-90.7295,14,"antigua"],["Trinidad","트리니다드","CU",21.8020,-79.9847,14],["Santiago de Cuba","산티아고데쿠바","CU",20.0247,-75.8219,13],["Willemstad","빌렘스타드","CW",12.1091,-68.9316,14,"curacao|퀴라소"],["Bridgetown","브리지타운","BB",13.0975,-59.6167,14],["Tegucigalpa","테구시갈파","HN",14.0723,-87.1921,13],["San Salvador","산살바도르","SV",13.6929,-89.2182,13],["Managua","마나과","NI",12.1150,-86.2362],["Belize City","벨리즈시티","BZ",17.5046,-88.1962,14,"belize"],["Port of Spain","포트오브스페인","TT",10.6549,-61.5019,13],
+["Cuenca","쿠엥카","EC",-2.9001,-79.0059,13,"쿠엔카"],["Puerto Ayora","푸에르토아요라","EC",-0.7393,-90.3138,15,"galapagos|갈라파고스"],["Arequipa","아레키파","PE",-16.4090,-71.5375,13],["Puno","푸노","PE",-15.8402,-70.0219,14],["Iquitos","이키토스","PE",-3.7437,-73.2516,13],["Sucre","수크레","BO",-19.0196,-65.2619,14],["Uyuni","우유니","BO",-20.4597,-66.8250,14],["Potosí","포토시","BO",-19.5836,-65.7531,14,"potosi"],["Mendoza","멘도사","AR",-32.8895,-68.8458,0,"멘도자"],["Bariloche","바릴로체","AR",-41.1335,-71.3103,13,"san carlos de bariloche"],["Salta","살타","AR",-24.7821,-65.4232,13],["El Calafate","엘칼라파테","AR",-50.3379,-72.2648,14,"calafate"],["Puerto Natales","푸에르토나탈레스","CL",-51.7308,-72.5068,14],["San Pedro de Atacama","산페드로데아타카마","CL",-22.9087,-68.1997,15,"atacama|아타카마"],["Punta Arenas","푼타아레나스","CL",-53.1638,-70.9171,13],
+["Florianópolis","플로리아노폴리스","BR",-27.5954,-48.5480,0,"florianopolis|floripa"],["Ouro Preto","오루프레투","BR",-20.3856,-43.5035,14],["Paraty","파라치","BR",-23.2178,-44.7131,15,"parati"],["Recife","헤시피","BR",-8.0476,-34.8770,0,"레시페"],["Foz do Iguaçu","포스두이구아수","BR",-25.5163,-54.5854,13,"foz do iguacu|iguazu|이구아수"],["Belém","벨렝","BR",-1.4558,-48.4902,0,"belem"],["Colonia del Sacramento","콜로니아델사크라멘토","UY",-34.4626,-57.8400,15,"colonia"],["Punta del Este","푼타델에스테","UY",-34.9667,-54.9500,14],["Santa Marta","산타마르타","CO",11.2408,-74.1990,13],["Cali","칼리","CO",3.4516,-76.5320],["Georgetown","조지타운","GY",6.8013,-58.1551,13],
+["Rotorua","로토루아","NZ",-38.1368,176.2497,13],["Dunedin","더니든","NZ",-45.8788,170.5028,13],["Nelson","넬슨","NZ",-41.2706,173.2840,13],["Alice Springs","앨리스스프링스","AU",-23.6980,133.8807,13],["Broome","브룸","AU",-17.9614,122.2359,13],["Gold Coast","골드코스트","AU",-28.0167,153.4000],["Byron Bay","바이런베이","AU",-28.6474,153.6020,14],["Launceston","론서스턴","AU",-41.4332,147.1441,13],["Nadi","난디","FJ",-17.7765,177.4356,13],["Apia","아피아","WS",-13.8333,-171.7667,14],["Nuku'alofa","누쿠알로파","TO",-21.1394,-175.2049,14,"nukualofa"],["Port Vila","포트빌라","VU",-17.7334,168.3273,14],["Honiara","호니아라","SB",-9.4456,159.9729,14],["Hagåtña","하갓냐","GU",13.4757,144.7489,14,"hagatna|guam|괌"]
+];
+HARD_RAW.forEach(r=>{const c=C[r[2]];CITIES.push({en:r[0],ko:r[1],lat:r[3],lng:r[4],zoom:r[5]||12,aliases:(r[6]||"").split("|").filter(Boolean),region:r[7]||c[2],cEn:c[0],cKo:c[1],hard:true})});
+
+/* ---------- Answer matching ---------- */
+const SPECIAL={"ł":"l","ø":"o","æ":"ae","œ":"oe","đ":"d","ð":"d","ı":"i","ß":"ss","þ":"th","’":"'"};
+function norm(s){
+  s=s.toLowerCase().replace(/[łøæœđðıßþ’]/g,ch=>SPECIAL[ch]);
+  s=s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").normalize("NFC");
+  return s.replace(/[^a-z0-9\uac00-\ud7a3]/g,"");
+}
+function lev(a,b){
+  if(a===b)return 0;const m=a.length,n=b.length;if(!m)return n;if(!n)return m;
+  let prev=Array.from({length:n+1},(_,i)=>i),cur=new Array(n+1);
+  for(let i=1;i<=m;i++){cur[0]=i;for(let j=1;j<=n;j++){cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1))}[prev,cur]=[cur,prev]}
+  return prev[n];
+}
+function isCorrect(input,city){
+  const g=norm(input);if(!g)return false;
+  const cands=[city.en,city.ko,...city.aliases].map(norm).filter(Boolean);
+  for(const c of cands){
+    if(g===c)return true;
+    const hangul=/[\uac00-\ud7a3]/.test(c);
+    const tol=hangul?(c.length>=4?1:0):(c.length<=4?0:c.length<=8?1:2);
+    if(tol&&Math.abs(g.length-c.length)<=tol&&lev(g,c)<=tol)return true;
+  }
+  return false;
+}
+const CHO="ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+function choseong(ch){const code=ch.charCodeAt(0)-0xac00;return code>=0&&code<11172?CHO[Math.floor(code/588)]:ch}
+
+
+/* 자주 쓰는 약칭·별명도 정답으로 인정 */
+const EXTRA_ALIASES={
+"New York":"ny|뉴욕시|빅애플|big apple","Los Angeles":"엘에이|로스엔젤레스","San Francisco":"sf|frisco|san fran|샌프란|샌프","Las Vegas":"베가스","Washington, D.C.":"워싱턴dc","New Orleans":"nola|뉴올","Salt Lake City":"slc|솔트레이크","Philadelphia":"philly","Chicago":"chi-town|chitown","Honolulu":"하와이","Montreal":"몬트리얼","Quebec City":"퀘벡","Vancouver":"벤쿠버",
+"Mexico City":"df|mexico df|멕시코시티","Guatemala City":"guate","Panama City":"파나마","San Juan":"산환",
+"Buenos Aires":"ba|baires|부에노스","Rio de Janeiro":"리우데자네이로","São Paulo":"sp|sampa|상파","Bogotá":"보고따","Cusco":"쿠즈코",
+"Saint Petersburg":"spb|piter|상트|상페","Vladivostok":"블라디","Moscow":"모스코바",
+"Kuala Lumpur":"kl|쿠알라|쿠알라룸프르","Ho Chi Minh City":"hcmc|hcm|호치민시","Bangkok":"krung thep|끄룽텝","Ulaanbaatar":"ub|울란","Bandar Seri Begawan":"bsb|반다르","Hong Kong":"hk","Singapore":"sg","Denpasar":"발리섬",
+"Abu Dhabi":"아부다비시","Dubai":"두바이시","Jerusalem":"al-quds|yerushalayim|알쿠드스","Kuwait City":"쿠웨이트",
+"Johannesburg":"jozi|조벅|요벅","Cape Town":"케이프","Addis Ababa":"addis|아디스","Dar es Salaam":"dar|dsm|다르","Kinshasa":"킨사사",
+"Amsterdam":"암스","Naples":"네이플스","Turin":"튜린","Munich":"뮤닉","Seville":"세빌","Warsaw":"워소","Prague":"프레이그","Venice":"베니스","Florence":"플로렌스","Vienna":"비엔나","Frankfurt":"프푸|프랑크프루트|팡풋|fra","Copenhagen":"cph","Reykjavík":"레이캬비크시",
+"Sydney":"시드니시","Melbourne":"멜본","Wellington":"welly","Christchurch":"chch"
+};
+CITIES.forEach(c=>{const x=EXTRA_ALIASES[c.en];if(x)x.split("|").forEach(a=>{if(!c.aliases.includes(a))c.aliases.push(a)})});
+const CITY_BY_EN={};CITIES.forEach(c=>CITY_BY_EN[c.en]=c);
+
+/* ---------- Storage ---------- */
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+/* 예전 아이디 방식 기록 (가져오기용, 읽기만) */
+let legacyUsers=store.get("mq-users",{});if(!legacyUsers||typeof legacyUsers!=="object")legacyUsers={};
+const legacyMe=store.get("mq-me",null);
+/* Google 계정별 기록 (uid 기준) */
+let users=store.get("mq-accounts",{});if(!users||typeof users!=="object")users={};
+let me=store.get("mq-uid",null);if(me&&!users[me])me=null;
+let meInfo=me?users[me].info||null:null;
+const meName=()=>{const p=me?users[me]:null;return (p&&p.nick)||(meInfo&&meInfo.name)||"내"};
+const saveLocal=()=>store.set("mq-accounts",users);
+const saveUsers=()=>{saveLocal();scheduleSync()};
+
+/* ---------- Server sync (Firestore REST, no SDK) ---------- */
+const FB={key:"AIzaSyDcM4jF_OeEH97mTai-UyUkSRAwlxBz_rA",project:"satellite-quiz-a557a"};
+const FS="https://firestore.googleapis.com/v1/projects/"+FB.project+"/databases/(default)/documents/";
+const docUrl=uid=>FS+"mapquiz_accounts/"+encodeURIComponent(uid)+"?key="+FB.key;
+const legacyUrl=id=>FS+"mapquiz_users/"+encodeURIComponent(id)+"?key="+FB.key;
+async function authHeaders(){const u=fbAuth&&fbAuth.currentUser;if(!u)throw new Error("not signed in");return{Authorization:"Bearer "+await u.getIdToken()}}
+function parseDoc(j){const raw=j.fields&&j.fields.data&&j.fields.data.stringValue;return raw?JSON.parse(raw):{games:[],cities:{}}}
+async function fetchRemote(uid){
+  const r=await fetch(docUrl(uid),{cache:"no-store",headers:await authHeaders()});
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  return parseDoc(await r.json());
+}
+async function fetchLegacy(id){
+  const r=await fetch(legacyUrl(id),{cache:"no-store"});
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  return parseDoc(await r.json());
+}
+async function pushRemote(id,p){
+  p.cities={};const data=JSON.stringify({games:p.games,cities:{},favs:p.favs||{},created:p.created,migrated:p.migrated||[],migrateAsked:!!p.migrateAsked,nick:p.nick||""});
+  const r=await fetch(docUrl(id),{method:"PATCH",headers:Object.assign({"Content-Type":"application/json"},await authHeaders()),body:JSON.stringify({fields:{data:{stringValue:data},updatedAt:{timestampValue:new Date().toISOString()}}})});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+}
+let syncTimer=null,syncing=false,syncState="idle";
+function scheduleSync(){
+  const p=profile();if(!p)return;
+  p.pending=true;p.rev=(p.rev||0)+1;saveLocal();
+  clearTimeout(syncTimer);syncTimer=setTimeout(syncNow,700);
+}
+async function syncNow(){
+  clearTimeout(syncTimer);
+  const id=me,p=profile();if(!p||!p.pending||syncing)return;
+  syncing=true;const rev=p.rev||0;syncState="saving";renderSync();
+  try{await pushRemote(id,p);syncState="saved";if((p.rev||0)===rev){p.pending=false;p.syncedAt=Date.now()}saveLocal()}
+  catch(e){syncState="error"}
+  syncing=false;renderSync();
+  if(syncState==="saved"&&p.pending&&users[id]===p)syncNow();
+}
+function renderSync(){
+  const el=document.getElementById("syncNote");if(!el)return;
+  const p=profile();
+  el.textContent=!p?"":syncState==="saving"?"서버에 저장하는 중…":syncState==="error"?"서버에 연결하지 못했어요. 이 기기에 보관해 두었다가 연결되면 다시 저장해요.":p.pending?"서버 저장 대기 중":"서버에 저장됨";
+  el.classList.toggle("err",syncState==="error");
+}
+function mergeLegacy(remote,local){
+  const byT={};(remote.games||[]).forEach(g=>byT[g.t]=g);(local.games||[]).forEach(g=>byT[g.t]=g);
+  const cities=JSON.parse(JSON.stringify(remote.cities||{}));
+  Object.entries(local.cities||{}).forEach(([en,s])=>{const r=cities[en]||{s:0,c:0};r.s+=s.s;r.c+=s.c;cities[en]=r});
+  return{games:Object.values(byT).sort((a,b)=>a.t-b.t).slice(-200),cities,favs:Object.assign({},remote.favs||{},local.favs||{}),migrated:[...new Set([...(remote.migrated||[]),...(local.migrated||[])])],migrateAsked:!!(remote.migrateAsked||local.migrateAsked),nick:local.nick||remote.nick||"",created:Math.min(remote.created||Date.now(),local.created||Date.now())};
+}
+/* 서버 기록과 이 기기 기록을 합쳐 최신 상태를 만든다 */
+function reconcile(id,remote){
+  const local=users[id];
+  if(remote===null){const p=local||{games:[],cities:{},created:Date.now()};p.pending=true;return p}
+  if(local&&!local.syncedAt){const m=mergeLegacy(remote,local);m.pending=true;return m}
+  if(local&&local.pending)return local;
+  return{games:remote.games||[],cities:remote.cities||{},favs:remote.favs||{},migrated:remote.migrated||[],migrateAsked:!!remote.migrateAsked,nick:remote.nick||"",created:remote.created||Date.now(),syncedAt:Date.now(),pending:false,info:local&&local.info};
+}
+async function refreshFromServer(){
+  const id=me;if(!id)return;
+  try{
+    const remote=await fetchRemote(id);if(me!==id)return;
+    users[id]=reconcile(id,remote);saveLocal();
+    if(users[id].pending)syncNow();else{syncState="saved";renderSync()}
+    if($("recScrim").classList.contains("open"))openRecords(true);
+  }catch(e){syncState="error";renderSync()}
+}
+window.addEventListener("online",()=>{const p=profile();if(p&&p.pending)syncNow();else refreshFromServer()});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){const p=profile();if(p&&p.pending)syncNow()}});
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),3800)}
+const profile=()=>me?users[me]:null;
+
+/* ---------- Maps (two layers, crossfaded) ---------- */
+const ESRI="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const ZOOM_HANDLERS=["touchZoom","scrollWheelZoom","doubleClickZoom"];
+function setPinch(on){allMaps.forEach(m=>ZOOM_HANDLERS.forEach(h=>on?m[h].enable():m[h].disable()))}
+function makeMap(el){
+  const m=L.map(el,{dragging:false,touchZoom:"center",scrollWheelZoom:"center",doubleClickZoom:"center",boxZoom:false,keyboard:false,zoomControl:false,zoomSnap:0.25,inertia:false,fadeAnimation:true});
+  L.tileLayer(ESRI,{maxZoom:19,maxNativeZoom:19,detectRetina:true,attribution:"Imagery © Esri, Maxar, Earthstar Geographics"}).addTo(m);
+  m.attributionControl.setPrefix(false);
+  m.setView([20,0],2,{animate:false});
+  ZOOM_HANDLERS.forEach(h=>m[h].disable());
+  return m;
+}
+const layers=[$("layerA"),$("layerB")];
+const maps=layers.map(makeMap);
+/* 연습 모드 줌아웃 연출용: 정답 공개 화면(넓은 범위)을 문제를 푸는 동안 미리 불러 둔다 */
+const layerC=$("layerC"),mapC=makeMap(layerC),layerD=$("layerD"),mapD=makeMap(layerD),allMaps=[...maps,mapC,mapD];
+let viewMap=null,revealing=false;
+const revealZoom=city=>Math.max(4,city.zoom-4);
+const revealZoomV=v=>Math.max(4,Math.round(v.zoom)-4);
+function placeReveal(qi){const v=qView(qi);if(v)mapC.setView([v.lat,v.lng],revealZoomV(v),{animate:false})}
+function clearInline(el){el.style.transition="none";el.style.transform="";el.style.opacity="";el.style.filter="";el.style.pointerEvents="";void el.offsetWidth;el.style.transition=""}
+function playRevealZoom(city){
+  const a=layers[active],mA=maps[active],v=qView(st.idx)||{lat:city.lat,lng:city.lng,zoom:city.zoom},z=revealZoomV(v);
+  const c0=mapC.getCenter();
+  if(Math.abs(mapC.getZoom()-z)>.01||Math.abs(c0.lat-v.lat)>1e-6||Math.abs(c0.lng-v.lng)>1e-6)placeReveal(st.idx);
+  const k=Math.pow(2,mA.getZoom()-z);
+  layerC.style.transition="none";a.style.transition="none";
+  layerC.classList.remove("off");
+  layerC.style.opacity="1";layerC.style.filter="none";layerC.style.transform="scale("+k+")";
+  a.style.transform="scale(1)";a.style.pointerEvents="none";
+  void layerC.offsetWidth;
+  const ease="cubic-bezier(.45,0,.2,1)";
+  layerC.style.transition="transform 1.6s "+ease;
+  a.style.transition="transform 1.6s "+ease+",opacity .5s ease 1.3s";
+  layerC.style.transform="scale(1)";
+  a.style.transform="scale("+(1/k)+")";a.style.opacity="0";
+  revealing=true;viewMap=mapC;
+}
+function endReveal(){
+  if(!revealing)return;
+  revealing=false;viewMap=null;
+  layerC.style.transition="";layerC.style.transform="";layerC.style.opacity="";layerC.style.filter="";
+  layerC.classList.add("off");
+}
+let active=0;
+/* 같은 도시라도 매번 조금씩 다르게: 중심을 화면 폭의 최대 18%까지 옮기고, 확대 정도도 ±0.5 안에서 바꾼다 */
+function viewFor(city){
+  const z=city.zoom+[-0.5,-0.25,0,0.25,0.5][Math.floor(Math.random()*5)];
+  const W=$("mapBox").clientWidth||600,off=W*0.18;
+  const pt=L.CRS.EPSG3857.latLngToPoint(L.latLng(city.lat,city.lng),z).add(L.point((Math.random()*2-1)*off,(Math.random()*2-1)*off));
+  const ll=L.CRS.EPSG3857.pointToLatLng(pt,z);
+  return{lat:ll.lat,lng:ll.lng,zoom:z};
+}
+function qView(i){if(!st)return null;if(!st.views)st.views=[];if(!st.views[i]&&st.queue[i])st.views[i]=viewFor(st.queue[i]);return st.views[i]||null}
+function place(i,qi){const v=qView(qi);if(v)maps[i].setView([v.lat,v.lng],v.zoom,{animate:false})}
+
+/* ---------- Layout: size the map to the screen ---------- */
+const app=$("app"),mapCell=$("mapCell"),stackedMQ=matchMedia("(max-aspect-ratio: 1/1)");
+function layout(){
+  if(stackedMQ.matches){app.style.removeProperty("--mapcol");return}
+  const cs=getComputedStyle(app);
+  const W=app.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight)-parseFloat(cs.columnGap||0);
+  const H=mapCell.clientHeight;
+  const s=Math.max(220,Math.min(H,W*0.62,W-290));
+  app.style.setProperty("--mapcol",Math.floor(s)+"px");
+}
+new ResizeObserver(layout).observe(app);
+if(stackedMQ.addEventListener)stackedMQ.addEventListener("change",layout);
+new ResizeObserver(()=>allMaps.forEach(m=>m.invalidateSize({animate:false}))).observe($("mapBox"));
+
+/* ---------- Settings ---------- */
+const ALL_REGIONS=Object.keys(REGION_NAME);
+let settings={regions:new Set(ALL_REGIONS),count:20,favOnly:false};
+(()=>{const s=store.get("mq-settings",null);if(s&&Array.isArray(s.regions)){settings.regions=new Set(s.regions.filter(r=>REGION_NAME[r]));settings.count=[0,10,20,50].includes(s.count)?s.count:20;settings.favOnly=!!s.favOnly;if(!settings.regions.size)settings.regions=new Set(ALL_REGIONS)}})();
+let mode=store.get("mq-mode","quiz")==="practice"?"practice":"quiz";
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+let hardOn=store.get("mq-hard",false)===true;
+function poolFor(regs,favOnly){const f=favOnly?favs():null;if(favOnly&&!f)favOnly=false;return CITIES.filter(c=>regs.has(c.region)&&(hardOn||!c.hard)&&(!favOnly||f[c.en]))}
+/* ---------- Favorites ---------- */
+function favs(){const p=profile();if(!p)return null;if(!p.favs)p.favs={};return p.favs}
+function favOf(en){const f=favs();return f?f[en]||null:null}
+function starBtn(en){const on=!!favOf(en);return '<button class="star" data-fav="'+esc(en)+'" aria-pressed="'+on+'" aria-label="즐겨찾기">'+(on?"★":"☆")+"</button>"}
+function setFav(en,on){
+  const f=favs();if(!f){toast("로그인하면 즐겨찾기를 쓸 수 있어요.");return null}
+  if(on){if(!f[en])f[en]={memo:"",streak:0,t:Date.now()}}else delete f[en];
+  saveUsers();syncStars(en);updateScope();
+  if(st&&st.busy&&st.revealItem&&st.revealItem.city.en===en)renderReveal();
+  if(browsing&&browsing.en===en)renderBrowse();
+  if($("recScrim").classList.contains("open")&&!on)openRecords(true);
+  return on;
+}
+function syncStars(en){document.querySelectorAll(".star[data-fav]").forEach(b=>{if(b.dataset.fav!==en)return;const on=!!favOf(en);b.setAttribute("aria-pressed",String(on));b.textContent=on?"★":"☆"})}
+document.addEventListener("mousedown",e=>{if(e.target.closest(".reveal button, .browse-card button")&&document.activeElement===$("answer"))e.preventDefault()});
+document.addEventListener("click",e=>{
+  const b=e.target.closest(".star[data-fav]");
+  if(b){e.stopPropagation();setFav(b.dataset.fav,!favOf(b.dataset.fav));return}
+  const m=e.target.closest("[data-memo]");
+  if(m){e.stopPropagation();openMemo(m.dataset.memo)}
+},true);
+let memoCity=null;
+function openMemo(en){
+  const c=CITY_BY_EN[en],f=favOf(en);if(!c||!f)return;
+  memoCity=en;$("memoTitle").textContent=c.en+" "+c.ko;$("memoText").value=f.memo||"";
+  openM("memoScrim");setTimeout(()=>$("memoText").focus(),60);
+}
+function scopeLabel(regs){
+  if(regs.size===ALL_REGIONS.length)return "전 세계";
+  const parts=[];
+  CONTINENTS.forEach(c=>{const on=c.regions.filter(([id])=>regs.has(id));if(on.length===c.regions.length)parts.push(c.name);else on.forEach(([,nm])=>parts.push(nm))});
+  return parts.length>2?parts.slice(0,2).join(", ")+" 외 "+(parts.length-2):parts.join(", ");
+}
+function updateScope(){$("scopeTxt").textContent=scopeLabel(settings.regions)+(settings.favOnly?" · ★ ":" · ")+poolFor(settings.regions,settings.favOnly).length+"개"}
+
+/* ---------- Game ---------- */
+let st=null,revealTimer=null,lastSet=null,lastMissed=[];
+const fine=()=>matchMedia("(pointer:fine)").matches;
+
+function startGame(kind,list,opt){
+  exitBrowse();
+  opt=opt||{};
+  clearTimeout(revealTimer);
+  if(!list.length){openScope();return}
+  if(kind!=="practice")mode="quiz";
+  st={kind,opt,fav:!!opt.fav,queue:list,idx:0,correct:0,answered:0,hint:0,history:[],busy:false,done:false,hintsUsed:0,revealItem:null,
+      scope:opt.label||(kind==="review"?"복습":scopeLabel(settings.regions)+(settings.favOnly?" ★":"")),hard:hardOn,views:[]};
+  document.body.classList.toggle("practice",kind==="practice");setPinch(kind==="practice");
+  $("history").innerHTML="";$("reveal").classList.remove("show");
+  endReveal();layers.forEach(l=>{l.classList.add("off");clearInline(l)});
+  active=0;place(0,0);place(1,1);
+  layers[0].classList.remove("off");layers[1].classList.add("off");
+  placeReveal(0);
+  $("passBtn").textContent=kind==="practice"?"Answer":"Pass";
+  renderMode();renderTop();renderHint();resetInput(true);updateScope();
+}
+function newGame(){
+  const pool=shuffle(poolFor(settings.regions,settings.favOnly).slice());
+  if(mode==="practice")startGame("practice",pool);
+  else startGame("quiz",pool.slice(0,settings.count===0?pool.length:Math.min(settings.count,pool.length)));
+}
+function renderMode(){document.querySelectorAll(".mode button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)));movePill()}
+/* 스위치처럼 미끄러지는 배경 */
+function movePill(){const b=document.querySelector('.mode button[aria-pressed="true"]'),p=$("modePill");if(!b||!p)return;p.style.left=b.offsetLeft+"px";p.style.width=b.offsetWidth+"px"}
+function snapPill(){const p=$("modePill");if(!p)return;p.classList.add("no-anim");movePill();void p.offsetWidth;requestAnimationFrame(()=>p.classList.remove("no-anim"))}
+function renderTop(){
+  const n=Math.min(st.idx+1,st.queue.length);
+  const small=st.kind==="practice"?"연습":"/ "+st.queue.length+(st.kind==="review"?" 복습":"");
+  $("qnum").innerHTML="#"+n+"<small>"+small+"</small>";
+  $("scoreNum").textContent=st.correct+" / "+st.answered;
+  $("barFill").style.width=(st.answered?st.correct/st.answered*100:0)+"%";
+}
+function renderHint(){
+  const c=st.queue[st.idx],box=$("hintLine");box.innerHTML="";
+  if(c&&st.hint>=1)box.insertAdjacentHTML("beforeend","<div>나라 <b>"+esc(c.cEn)+"</b> · "+esc(c.cKo)+"</div>");
+  if(c&&st.hint>=2)box.insertAdjacentHTML("beforeend","<div>첫 글자 <b>"+esc(c.en[0])+"…</b> · <b>"+choseong(c.ko[0])+"…</b> ("+c.en.length+"글자)</div>");
+  document.querySelectorAll("#hintBtn .dots i").forEach((d,i)=>d.classList.toggle("on",i<st.hint));
+  $("hintBtn").disabled=st.hint>=2||st.busy||st.done;
+}
+function resetInput(clear){
+  $("answerBox").classList.remove("ok","bad");
+  const inp=$("answer");if(clear)inp.value="";
+  $("passBtn").disabled=false;
+  if(fine())inp.focus();
+}
+function recordCity(city,ok){
+  const p=profile();if(!p)return;
+  const s=p.cities[city.en]||{s:0,c:0};s.s++;if(ok)s.c++;p.cities[city.en]=s;saveUsers();
+}
+function answer(passed){
+  if(!st||st.done)return;
+  if(browsing){exitBrowse();return}
+  if(st.busy){advance();return}
+  const inp=$("answer"),val=inp.value.trim(),city=st.queue[st.idx];
+  if(!passed&&!val){const b=$("answerBox");b.classList.remove("shake");void b.offsetWidth;b.classList.add("shake");return}
+  const ok=!passed&&isCorrect(val,city);
+  st.busy=true;st.answered++;if(ok)st.correct++;if(st.hint)st.hintsUsed++;
+  const item={n:st.idx+1,guess:passed?"":val,city,ok,hinted:st.hint>0,passed};
+  st.history.push(item);
+  /* 즐겨찾기 연속 정답 (퀴즈·복습만, 힌트 없이 맞혀야 인정). 퀴즈 중에는 아무 표시도 하지 않음 */
+  if(st.kind!=="practice"){const f=favOf(city.en);if(f){f.streak=(ok&&!item.hinted)?(f.streak||0)+1:0;saveUsers()}}
+  $("answerBox").classList.add(ok?"ok":"bad");inp.value="";
+  $("passBtn").disabled=true;$("hintBtn").disabled=true;
+  addHistory(item);renderTop();
+  st.revealItem=item;renderReveal();
+  $("reveal").classList.add("show");
+  playRevealZoom(city);
+  /* 퀴즈는 줌아웃(1.6초)을 다 본 뒤 자동으로 넘어감. 기다리기 싫으면 Enter로 바로 다음 */
+  if(st.kind!=="practice")revealTimer=setTimeout(advance,ok?2600:3400);
+}
+/* 정답 카드: 별·메모는 연습 모드와 즐겨찾기 복습에서만 */
+function renderReveal(){
+  const it=st.revealItem;if(!it)return;
+  const city=it.city,ok=it.ok;
+  const verdict=ok?(it.hinted?"정답 (힌트 사용)":"정답"):(it.passed?(st.kind==="practice"?"정답 보기":"패스"):"아쉬워요");
+  const study=(st.kind==="practice"||st.fav)&&!!me;
+  const f=study?favOf(city.en):null;
+  let h='<span class="verdict '+(ok?"ok":"bad")+'">'+verdict+'</span><div class="city">'+esc(city.en)+"<span>"+esc(city.ko)+"</span>"+(study?starBtn(city.en):"")+'</div><div class="country">'+esc(city.cEn)+" · "+esc(city.cKo)+"</div>";
+  if(f)h+='<div class="memo-line">'+(f.memo?'<span class="memo-txt">📝 '+esc(f.memo)+"</span>":"")+'<button class="memo-btn" data-memo="'+esc(city.en)+'">'+(f.memo?"메모 고치기":"📝 메모 쓰기")+"</button></div>";
+  if(st.kind==="practice")h+='<div class="next">Enter를 누르면 다음 문제로 넘어가요</div>';
+  $("reveal").innerHTML=h;
+}
+function addHistory(it){
+  const li=document.createElement("li");
+  const mark='<span class="mark '+(it.ok?"ok":"bad")+'">'+(it.ok?"✓":"✕")+"</span>";
+  const hint=it.hinted?'<span class="hinted" title="힌트 사용">💡</span>':"";
+  if(it.ok)li.innerHTML='<span class="n">#'+it.n+'</span><span class="g">'+esc(it.city.en)+"</span>"+mark+hint+'<span class="sub">'+esc(it.city.ko)+"</span>";
+  else li.innerHTML='<span class="n">#'+it.n+'</span><span class="g">'+(it.passed?"패스":esc(it.guess))+"</span>"+mark+hint+'<span class="sub">('+esc(it.city.en)+")</span>";
+  const h=$("history");h.appendChild(li);
+  while(h.children.length>60)h.removeChild(h.firstChild);
+  h.scrollTop=h.scrollHeight;
+}
+function advance(){
+  clearTimeout(revealTimer);
+  if(!st||!st.busy)return;
+  st.busy=false;st.idx++;st.hint=0;
+  $("reveal").classList.remove("show");
+  if(st.kind==="practice"&&st.idx+2>=st.queue.length)st.queue=st.queue.concat(shuffle(poolFor(settings.regions,settings.favOnly).slice()));
+  if(st.idx>=st.queue.length){finish();return}
+  const next=1-active,wasRevealing=revealing;
+  place(next,st.idx);
+  clearInline(layers[next]);
+  layers[next].classList.remove("off");
+  if(wasRevealing){layers[active].classList.add("off");clearInline(layers[active]);endReveal()}
+  else layers[active].classList.add("off");
+  const old=active;active=next;
+  setTimeout(()=>{
+    if(!st)return;
+    if(st.queue[st.idx+1])place(old,st.idx+1);
+    if(!revealing)placeReveal(st.idx);
+  },800);
+  renderTop();renderHint();resetInput(false);
+}
+function finish(){
+  st.done=true;st.idx=st.queue.length-1;
+  renderTop();renderHint();$("passBtn").disabled=true;
+  const p=profile();
+  if(p){
+    p.games.push({t:Date.now(),kind:st.kind,scope:st.scope,hard:!!st.hard,total:st.queue.length,correct:st.correct,hints:st.hintsUsed,missed:st.history.filter(h=>!h.ok).map(h=>h.city.en),all:st.history.map(h=>h.city.en)});
+    if(p.games.length>200)p.games=p.games.slice(-200);
+    saveUsers();
+  }
+  setTimeout(showResult,450);
+}
+function useHint(){if(!st||st.busy||st.done||st.hint>=2)return;st.hint++;renderHint();if(fine())$("answer").focus()}
+
+/* ---------- Result ---------- */
+function showResult(){
+  const total=st.queue.length,missed=st.history.filter(h=>!h.ok);
+  lastSet={kind:st.kind,list:st.queue.slice(),opt:st.opt};lastMissed=missed.map(h=>h.city);
+  let html;
+  if(!missed.length){
+    html='<div class="celebrate'+(st.hard?" hard-cele":"")+'"><div class="trophy">'+(st.hard?"🛰️":"🏆")+'</div><div class="result-big">'+total+" / "+total+'</div><p class="cheer">'+(st.hard?"HARD 세트를 전부 맞혔어요! 정찰 임무 완수.":st.hintsUsed?"전부 맞혔어요! 힌트는 "+st.hintsUsed+"번 썼어요.":"힌트 없이 전부 맞혔어요. 완벽해요!")+"</p></div>";
+    setTimeout(confetti,250);
+  }else{
+    const pct=Math.round(st.correct/total*100);
+    html='<div class="result-big">'+st.correct+" / "+total+'</div><div class="muted">정답률 '+pct+"% · 힌트 사용 "+st.hintsUsed+"번</div>";
+  }
+  /* 3번 연속 맞힌 즐겨찾기 도시 */
+  const seen={},grad=[];
+  st.history.forEach(h=>{const f=favOf(h.city.en);if(f&&(f.streak||0)>=3&&!seen[h.city.en]){seen[h.city.en]=1;grad.push(h.city)}});
+  if(grad.length){
+    html+='<div class="grad" id="gradBox"><p class="grad-q">3번 연속 맞힌 도시예요. 즐겨찾기에서 뺄까요?</p>'+
+      grad.map(c=>'<label class="grad-row"><input type="checkbox" data-grad="'+esc(c.en)+'" checked> <b>'+esc(c.en)+"</b> "+esc(c.ko)+"</label>").join("")+
+      '<div class="grad-btns"><button class="ghost" id="gradKeep">그대로 두기</button><button class="primary" id="gradDo">즐겨찾기에서 빼기</button></div></div>';
+  }
+  /* 이번 세트에 나온 도시 전체 + 별 */
+  if(me){
+    html+='<div class="set-head"><h3 class="rec-h">이번 세트 도시</h3>'+(missed.length?'<button class="toggle-all" id="favMissed">틀린 도시 모두 담기 ☆</button>':"")+"</div>";
+    html+='<ul class="rec-list set-list">'+st.history.map(h=>'<li><span><span class="mark '+(h.ok?"ok":"bad")+'">'+(h.ok?"✓":"✕")+"</span> <b>"+esc(h.city.en)+"</b> "+esc(h.city.ko)+' <span class="muted">'+esc(h.city.cKo)+"</span></span>"+starBtn(h.city.en)+"</li>").join("")+"</ul>";
+  }else{
+    if(missed.length)html+='<ul class="missed">'+missed.map(m=>"<li><b>"+esc(m.city.en)+"</b> "+esc(m.city.ko)+' <span class="muted">'+esc(m.city.cKo)+"</span></li>").join("")+"</ul>";
+    html+='<p class="muted">로그인하면 이 결과가 기록에 저장되고, 즐겨찾기도 쓸 수 있어요.</p>';
+  }
+  $("resBody").innerHTML=html;
+  $("resReview").hidden=!missed.length;
+  $("resReview").textContent="틀린 "+missed.length+"개 복습";
+  openM("resScrim");
+}
+$("resBody").addEventListener("click",e=>{
+  if(e.target.closest("#favMissed")){lastMissed.forEach(c=>{if(!favOf(c.en))setFav(c.en,true)});const b=$("favMissed");b.textContent="담았어요 ★";b.disabled=true;return}
+  const keep=e.target.closest("#gradKeep"),go=e.target.closest("#gradDo");
+  if(!keep&&!go)return;
+  const box=$("gradBox"),rows=[...box.querySelectorAll("[data-grad]")];let removed=0;
+  rows.forEach(r=>{const en=r.dataset.grad,f=favOf(en);if(!f)return;
+    if(go&&r.checked){setFav(en,false);removed++}else{f.streak=0}});
+  saveUsers();
+  box.innerHTML='<p class="grad-q">'+(removed?removed+"개 도시를 즐겨찾기에서 뺐어요.":"그대로 두었어요. 다시 3번 연속 맞히면 또 물어볼게요.")+"</p>";
+});
+$("resReview").onclick=()=>{closeM("resScrim");setTimeout(()=>startGame("review",shuffle(lastMissed.slice()),{fav:lastSet.opt&&lastSet.opt.fav}),250)};
+$("resSame").onclick=()=>{closeM("resScrim");setTimeout(()=>startGame(lastSet.kind,shuffle(lastSet.list.slice()),lastSet.opt),250)};
+$("resNew").onclick=()=>{closeM("resScrim");setTimeout(newGame,250)};
+$("resScope").onclick=()=>{closeM("resScrim");setTimeout(openScope,200)};
+
+/* ---------- Confetti ---------- */
+function confetti(){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+  const c=$("confetti"),ctx=c.getContext("2d"),dpr=window.devicePixelRatio||1,W=innerWidth,H=innerHeight;if(!ctx)return;
+  c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+  const cols=hardOn?["#f2b632","#ffd36b","#e6ebf3","#c98a12","#8fb4ff"]:["#18865f","#e0306a","#2a5bd7","#f2b632","#3fc596","#7aa2ff"];
+  const ps=Array.from({length:170},()=>({x:W/2+(Math.random()-.5)*W*.35,y:H*.38,vx:(Math.random()-.5)*15,vy:-Math.random()*15-6,r:Math.random()*Math.PI,vr:(Math.random()-.5)*.3,w:6+Math.random()*6,h:8+Math.random()*9,col:cols[Math.floor(Math.random()*cols.length)]}));
+  c.classList.add("on");const t0=performance.now();
+  (function frame(t){
+    const el=t-t0;ctx.clearRect(0,0,W,H);
+    ps.forEach(p=>{p.vy+=.33;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.globalAlpha=Math.max(0,1-el/3400);ctx.fillStyle=p.col;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore()});
+    if(el<3500)requestAnimationFrame(frame);else{ctx.clearRect(0,0,W,H);c.classList.remove("on")}
+  })(t0);
+}
+
+/* ---------- Records ---------- */
+/* 자주 틀린 도시는 '끝낸 세트' 기록에서만 계산 (세트를 지우면 함께 사라짐) */
+function weakCities(){
+  const p=profile();if(!p)return[];
+  const agg={};
+  p.games.forEach(g=>{
+    const miss={};(g.missed||[]).forEach(en=>miss[en]=(miss[en]||0)+1);
+    const all=g.all||g.missed||[];
+    all.forEach(en=>{const a=agg[en]||(agg[en]={s:0,w:0});a.s++;if(miss[en]){a.w++;miss[en]--}});
+  });
+  return Object.entries(agg).filter(([en,a])=>CITY_BY_EN[en]&&a.w>0)
+    .sort((a,b)=>b[1].w-a[1].w||(b[1].w/b[1].s)-(a[1].w/a[1].s))
+    .map(([en,a])=>({city:CITY_BY_EN[en],wrong:a.w,seen:a.s}));
+}
+function fmtDate(t){const d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
+let recLimit=10;
+let favLimit=10;
+function openRecords(keep){
+  if(keep!==true){recLimit=10;favLimit=10}
+  const p=profile();let html;
+  $("recTitle").textContent=me?meName()+"님의 기록":"기록";
+  $("recSwitch").textContent="로그인";$("recSwitch").hidden=!!me;
+  if(!p){html='<p>로그인하면 게임 결과, 자주 틀린 도시, 즐겨찾기가 저장돼요.</p>';$("recReview").hidden=true}
+  else{
+    const g=p.games,tot=g.reduce((a,x)=>a+x.total,0),cor=g.reduce((a,x)=>a+x.correct,0),perfect=g.filter(x=>x.correct===x.total).length;
+    html='<div class="stats"><div><b>'+g.length+'</b><span>끝낸 세트</span></div><div><b>'+(tot?Math.round(cor/tot*100)+"%":"–")+'</b><span>평균 정답률</span></div><div><b>'+perfect+'</b><span>전부 맞힌 세트</span></div></div>';
+    html+='<h3 class="rec-h">최근 기록</h3>';
+    html+=g.length?'<ul class="rec-list" id="recGames">'+g.slice().reverse().slice(0,recLimit).map(x=>'<li><span>'+fmtDate(x.t)+' <span class="muted">'+esc(x.scope)+'</span>'+(x.hard?'<span class="hard-badge">HARD</span>':'')+'</span><span class="right"><span class="r'+(x.correct===x.total?" perfect":"")+'">'+x.correct+" / "+x.total+'</span><button class="del" data-del="'+x.t+'" aria-label="이 기록 삭제">삭제</button></span></li>').join("")+'</ul>'+(g.length>recLimit?'<button class="ghost more-btn" id="recMore">더 보기 ('+(g.length-recLimit)+'개 남음)</button>':''):'<p class="muted">아직 끝낸 세트가 없어요. 퀴즈를 한 세트 끝내면 여기에 쌓여요.</p>';
+    const fl=Object.entries(favs()).filter(([en])=>CITY_BY_EN[en]).sort((a,b)=>(b[1].t||0)-(a[1].t||0));
+    html+='<div class="set-head"><h3 class="rec-h">즐겨찾기 ('+fl.length+')</h3>'+(fl.length?'<button class="toggle-all strong" id="favReview">즐겨찾기 복습</button>':"")+"</div>";
+    html+=fl.length?'<ul class="rec-list fav-list">'+fl.slice(0,favLimit).map(([en,f])=>{const c=CITY_BY_EN[en];return '<li><button class="fav-row" data-memo="'+esc(en)+'"><b>'+esc(c.en)+"</b> "+esc(c.ko)+'<span class="memo-prev">'+(f.memo?"📝 "+esc(f.memo):"메모 쓰기")+"</span></button>"+starBtn(en)+"</li>"}).join("")+"</ul>"+(fl.length>favLimit?'<button class="ghost more-btn" id="favMore">더 보기 ('+(fl.length-favLimit)+'개 남음)</button>':""):'<p class="muted">아직 즐겨찾기한 도시가 없어요. 세트 결과 화면이나 연습 모드 정답 화면에서 ☆를 눌러 담아 보세요.</p>';
+    const weak=weakCities();
+    html+='<h3 class="rec-h">자주 틀린 도시</h3>';
+    html+=weak.length?'<ul class="rec-list">'+weak.slice(0,10).map(w=>"<li><span><b>"+esc(w.city.en)+"</b> "+esc(w.city.ko)+'</span><span class="right"><span class="r">'+w.wrong+"번 틀림 / "+w.seen+"번 출제</span>"+starBtn(w.city.en)+"</span></li>").join("")+"</ul>":'<p class="muted">아직 틀린 도시가 없어요.</p>';
+    $("recReview").hidden=!weak.length;
+    $("recReview").textContent="자주 틀린 도시 복습 ("+Math.min(weak.length,20)+")";
+  }
+  $("recBody").innerHTML=(me?'<p class="muted sync" id="syncNote"></p>':"")+html;renderSync();if(!$("recScrim").classList.contains("open"))openM("recScrim");
+}
+$("recReview").onclick=()=>{const w=weakCities().slice(0,20).map(x=>x.city);closeM("recScrim");setTimeout(()=>startGame("review",shuffle(w)),250)};
+/* ---------- Delete records (with confirm) ---------- */
+let cfmAction=null;
+function confirmM(msg,label,fn){$("cfmMsg").textContent=msg;$("cfmYes").textContent=label;cfmAction=fn;openM("cfmScrim");setTimeout(()=>$("cfmNo").focus(),50)}
+$("memoSave").onclick=()=>{
+  const f=favOf(memoCity);if(f){f.memo=$("memoText").value.trim().slice(0,120);saveUsers()}
+  closeM("memoScrim");
+  if($("recScrim").classList.contains("open"))openRecords(true);
+  if(st&&st.busy&&st.revealItem&&st.revealItem.city.en===memoCity)renderReveal();
+  if(browsing&&browsing.en===memoCity)renderBrowse();
+  if($("listScrim").classList.contains("open"))renderList();
+};
+$("cfmNo").onclick=()=>{cfmAction=null;closeM("cfmScrim")};
+$("cfmYes").onclick=()=>{const fn=cfmAction;cfmAction=null;closeM("cfmScrim");if(fn)fn()};
+function removeGameStats(p,g){
+  if(!g.all)return;
+  const miss={};(g.missed||[]).forEach(en=>miss[en]=(miss[en]||0)+1);
+  g.all.forEach(en=>{const s=p.cities[en];if(!s)return;s.s=Math.max(0,s.s-1);if(miss[en])miss[en]--;else s.c=Math.max(0,s.c-1);if(s.c>s.s)s.c=s.s;if(!s.s)delete p.cities[en]});
+}
+$("recBody").addEventListener("click",e=>{
+  const p=profile();if(!p)return;
+  if(e.target.closest("#recMore")){recLimit+=10;openRecords(true);return}
+  if(e.target.closest("#favMore")){favLimit+=10;openRecords(true);return}
+  if(e.target.closest("#favReview")){const list=shuffle(Object.keys(favs()).filter(en=>CITY_BY_EN[en]).map(en=>CITY_BY_EN[en])).slice(0,20);closeM("recScrim");setTimeout(()=>startGame("review",list,{fav:true,label:"즐겨찾기 복습"}),250);return}
+  const d=e.target.closest("[data-del]");
+  if(d){
+    const t=+d.dataset.del,g=p.games.find(x=>x.t===t);if(!g)return;
+    confirmM(fmtDate(g.t)+" "+g.scope+" 세트 ("+g.correct+" / "+g.total+") 기록을 삭제해요. 되돌릴 수 없어요.","삭제",()=>{
+      p.games=p.games.filter(x=>x.t!==t);saveUsers();openRecords(true);
+    });
+  }
+});
+$("recSwitch").onclick=()=>{closeM("recScrim");setTimeout(openLogin,200)};
+
+/* ---------- Login (Google, Firebase Auth) ---------- */
+const FB_CFG={apiKey:FB.key,authDomain:"satellite-quiz-a557a.firebaseapp.com",projectId:FB.project,appId:"1:1096544370523:web:fdee0f72b1fb113963647e"};
+const FB_VER="13.1.0";
+let fbAuth=null,fbMod=null,authReady=false,welcomePending=false;
+function updateUser(){$("recBtn").innerHTML="Records"+(me?'<span class="who">'+esc(meName())+"</span>":"")}
+function openLogin(){$("loginMsg").textContent="";openM("loginScrim")}
+async function initAuth(){
+  try{
+    const [appM,authM]=await Promise.all([
+      import("https://www.gstatic.com/firebasejs/"+FB_VER+"/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/"+FB_VER+"/firebase-auth.js")]);
+    fbMod=authM;fbAuth=authM.getAuth(appM.initializeApp(FB_CFG));
+    authM.onAuthStateChanged(fbAuth,onAuth);
+  }catch(e){
+    authReady=true;syncState="error";renderSync();
+    toast("로그인 기능을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.");
+  }
+}
+async function onAuth(user){
+  const first=!authReady;authReady=true;
+  if(!user){
+    if(me){me=null;meInfo=null;store.set("mq-uid",null);updateUser();updateScope()}
+    if(first){
+      if(!store.get("mq-guest",false))setTimeout(openLogin,300);
+      else if(!store.get("mq-tut",false))setTimeout(openSettings,300);
+    }
+    return;
+  }
+  const uid=user.uid;
+  meInfo={name:user.displayName||(user.email||"").split("@")[0]||"나",email:user.email||"",photo:user.photoURL||""};
+  me=uid;store.set("mq-uid",me);store.set("mq-guest",false);
+  if(!users[uid])users[uid]={games:[],cities:{},favs:{},created:Date.now()};
+  users[uid].info=meInfo;saveLocal();updateUser();
+  if($("loginScrim").classList.contains("open"))closeM("loginScrim");
+  let remote=null,failed=false;
+  try{remote=await fetchRemote(uid)}catch(e){failed=true}
+  if(me!==uid)return;
+  if(!failed){
+    users[uid]=reconcile(uid,remote);users[uid].info=meInfo;saveLocal();
+    if(users[uid].pending)syncNow();else{syncState="saved";renderSync()}
+  }else{syncState="error";renderSync()}
+  updateScope();updateUser();
+  if($("recScrim").classList.contains("open"))openRecords(true);
+  if(!failed&&!users[uid].nick){welcomePending=false;setTimeout(()=>openNick(true),450);return}
+  if(welcomePending){welcomePending=false;toast(meName()+"님, 반가워요!")}
+  nextAfterNick();
+}
+function googleLogin(){
+  const msg=$("loginMsg");
+  if(!fbAuth){msg.textContent="로그인 기능을 불러오는 중이에요. 잠시 후 다시 눌러 주세요.";return}
+  msg.textContent="";
+  const prov=new fbMod.GoogleAuthProvider();prov.setCustomParameters({prompt:"select_account"});
+  welcomePending=true;
+  fbMod.signInWithPopup(fbAuth,prov).catch(e=>{
+    welcomePending=false;
+    const c=(e&&e.code)||"";
+    if(c==="auth/popup-closed-by-user"||c==="auth/cancelled-popup-request")return;
+    msg.textContent=c==="auth/popup-blocked"?"팝업이 차단됐어요. 사파리 설정에서 '팝업 차단'을 끄고 다시 눌러 주세요."
+      :c==="auth/unauthorized-domain"?"이 사이트 주소가 Firebase 승인된 도메인에 없어요."
+      :c==="auth/network-request-failed"?"인터넷 연결을 확인하고 다시 눌러 주세요."
+      :"로그인하지 못했어요. ("+c+")";
+  });
+}
+function logout(){if(fbAuth&&fbMod)fbMod.signOut(fbAuth);else{me=null;meInfo=null;store.set("mq-uid",null);updateUser()}toast("로그아웃했어요.")}
+function afterLogin(){if(!store.get("mq-tut",false))setTimeout(openSettings,300)}
+$("googleBtn").onclick=googleLogin;
+$("guestBtn").onclick=$("loginX").onclick=()=>{store.set("mq-guest",true);closeM("loginScrim");afterLogin()};
+
+/* ---------- 닉네임 ---------- */
+let nickFirst=false;
+function needMigrate(){const p=profile();return !!p&&!p.migrateAsked}
+function nextAfterNick(){
+  if(needMigrate()&&(Object.keys(legacyUsers).length||!(profile().games||[]).length))setTimeout(openMigrate,350);
+  else if(!store.get("mq-tut",false))setTimeout(openSettings,350);
+}
+function openNick(first){
+  nickFirst=!!first;const p=profile();if(!p)return;
+  $("nickTitle").textContent=first?"어떻게 불러드릴까요?":"닉네임 바꾸기";
+  $("nickText").value=p.nick||(meInfo&&meInfo.name)||"";
+  $("nickMsg").textContent="";$("nickSkip").hidden=!first;$("nickX").hidden=first;
+  openM("nickScrim");setTimeout(()=>{const i=$("nickText");i.focus();i.select()},80);
+}
+function saveNick(useDefault){
+  const p=profile();if(!p)return;
+  let v=useDefault?((meInfo&&meInfo.name)||""):$("nickText").value.trim();
+  v=v.slice(0,12);
+  if(!v){const i=$("nickText");i.classList.remove("shake");void i.offsetWidth;i.classList.add("shake");$("nickMsg").textContent="한 글자 이상 적어 주세요.";return}
+  p.nick=v;saveUsers();updateUser();closeM("nickScrim");
+  if($("recScrim").classList.contains("open"))openRecords(true);
+  if(nickFirst){toast(v+"님, 반가워요!");nickFirst=false;nextAfterNick()}else toast("이제 "+v+"님으로 불러드릴게요.");
+}
+$("nickSave").onclick=()=>saveNick(false);
+$("nickSkip").onclick=()=>saveNick(true);
+$("nickText").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();saveNick(false)}});
+
+/* ---------- 예전 아이디 기록 가져오기 ---------- */
+function openMigrate(){
+  const ids=Object.keys(legacyUsers);
+  $("migId").value=legacyMe&&legacyUsers[legacyMe]?legacyMe:(ids[0]||"");
+  $("migKnown").innerHTML=ids.length?'<span class="muted" style="width:100%">이 기기에서 쓰던 아이디</span>'+ids.map(id=>'<button class="chip" data-mig="'+esc(id)+'">'+esc(id)+"</button>").join(""):"";
+  $("migMsg").textContent="";openM("migScrim");
+}
+async function importLegacy(){
+  const id=$("migId").value.trim(),msg=$("migMsg"),btn=$("migDo"),p=profile();
+  if(!id||!p)return;
+  btn.disabled=true;btn.textContent="가져오는 중…";msg.textContent="";
+  let remoteL=null,err=false;
+  try{remoteL=await fetchLegacy(id)}catch(e){err=true}
+  btn.disabled=false;btn.textContent="가져오기";
+  const localL=legacyUsers[id];
+  if(err&&!localL){msg.textContent="서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.";return}
+  if(!remoteL&&!localL){msg.textContent="'"+id+"' 아이디의 기록을 찾지 못했어요.";return}
+  const src=remoteL&&localL?mergeLegacy(remoteL,localL):(remoteL||localL);
+  const byT={};p.games.forEach(g=>byT[g.t]=g);
+  let gN=0;(src.games||[]).forEach(g=>{if(!byT[g.t]){byT[g.t]=g;gN++}});
+  p.games=Object.values(byT).sort((a,b)=>a.t-b.t).slice(-200);
+  p.favs=p.favs||{};let fN=0;
+  Object.entries(src.favs||{}).forEach(([en,f])=>{const cur=p.favs[en];if(!cur){p.favs[en]=f;fN++}else if(!cur.memo&&f.memo)cur.memo=f.memo});
+  p.migrated=[...new Set([...(p.migrated||[]),id])];p.migrateAsked=true;saveUsers();
+  closeM("migScrim");updateScope();
+  toast(gN||fN?"세트 기록 "+gN+"개와 즐겨찾기 "+fN+"개를 가져왔어요.":"새로 가져올 기록이 없었어요. 이미 합쳐져 있어요.");
+  if($("recScrim").classList.contains("open"))openRecords(true);
+  afterLogin();
+}
+$("migDo").onclick=importLegacy;
+$("migSkip").onclick=()=>{const p=profile();if(p){p.migrateAsked=true;saveUsers()}closeM("migScrim");afterLogin()};
+$("migKnown").addEventListener("click",e=>{const b=e.target.closest("[data-mig]");if(b)$("migId").value=b.dataset.mig});
+$("migId").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();importLegacy()}});
+
+/* ---------- Scope sheet ---------- */
+let draft=null;
+function renderSheet(){
+  const box=$("regionGroups");box.innerHTML="";
+  CONTINENTS.forEach(c=>{
+    const g=document.createElement("div");g.className="group";
+    const allOn=c.regions.every(([id])=>draft.regions.has(id));
+    g.innerHTML='<div class="group-head"><h3>'+c.name+'</h3><button class="toggle-all" data-cont="'+c.id+'">'+(allOn?"빼기":"모두 넣기")+'</button></div><div class="chips">'+
+      c.regions.map(([id,nm])=>'<button class="chip" data-reg="'+id+'" aria-pressed="'+draft.regions.has(id)+'">'+nm+"<span>"+CITIES.filter(x=>x.region===id&&(hardOn||!x.hard)).length+"</span></button>").join("")+"</div>";
+    box.appendChild(g);
+  });
+  const fc=me?Object.keys(favs()).filter(en=>CITY_BY_EN[en]).length:0;
+  const chip=$("favOnlyChip");chip.setAttribute("aria-pressed",String(draft.favOnly));chip.innerHTML="★ 즐겨찾기만<span>"+fc+"</span>";
+  $("favNote").textContent=!me?"로그인하면 쓸 수 있어요":draft.favOnly?"선택한 권역 안의 즐겨찾기 도시만 나와요":"";
+  document.querySelectorAll("#countSeg button").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.c===draft.count)));
+  $("countNote").textContent=mode==="practice"?"Practice 모드는 끝없이 나와요":"";
+  const n=poolFor(draft.regions,draft.favOnly).length,q=draft.count===0?n:Math.min(draft.count,n);
+  const btn=$("applyBtn");btn.disabled=n===0;
+  btn.textContent=!n?(draft.favOnly?"이 범위에 즐겨찾기 도시가 없어요":"지역을 하나 이상 고르세요"):mode==="practice"?"연습 시작 ("+n+"개 도시)":"새 게임 시작 ("+q+"문제)";
+}
+$("regionGroups").addEventListener("click",e=>{
+  const chip=e.target.closest("[data-reg]"),cont=e.target.closest("[data-cont]");
+  if(chip){const r=chip.dataset.reg;draft.regions.has(r)?draft.regions.delete(r):draft.regions.add(r)}
+  else if(cont){const c=CONTINENTS.find(x=>x.id===cont.dataset.cont);const allOn=c.regions.every(([id])=>draft.regions.has(id));c.regions.forEach(([id])=>allOn?draft.regions.delete(id):draft.regions.add(id))}
+  else return;
+  renderSheet();
+});
+$("favOnlyChip").onclick=()=>{if(!me){toast("로그인하면 즐겨찾기를 쓸 수 있어요.");return}draft.favOnly=!draft.favOnly;renderSheet()};
+$("countSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;draft.count=+b.dataset.c;renderSheet()});
+$("selAll").onclick=()=>{draft.regions=new Set(ALL_REGIONS);renderSheet()};
+$("selNone").onclick=()=>{draft.regions=new Set();renderSheet()};
+$("applyBtn").onclick=()=>{
+  settings={regions:new Set(draft.regions),count:draft.count,favOnly:draft.favOnly};
+  store.set("mq-settings",{regions:[...settings.regions],count:settings.count,favOnly:settings.favOnly});
+  closeM("setScrim");setTimeout(newGame,250);
+};
+function openScope(){draft={regions:new Set(settings.regions),count:settings.count,favOnly:settings.favOnly&&!!me};renderSheet();openM("setScrim")}
+
+/* ---------- Settings: theme + account + tutorial ---------- */
+/* 색 바꾸기: 요소마다 따로 애니메이션하지 않고, 바뀌기 전·후 화면을 사진처럼 찍어 한 번에 겹쳐 페이드 (휴대폰도 가벼움)
+   View Transition을 지원하지 않는 브라우저는 바로 바뀜 */
+function quietSwitch(fn,originEl){
+  const h=document.documentElement;
+  const run=()=>{h.classList.add("theme-switching");fn();void h.offsetWidth;requestAnimationFrame(()=>requestAnimationFrame(()=>h.classList.remove("theme-switching")))};
+  if(document.startViewTransition&&!matchMedia("(prefers-reduced-motion: reduce)").matches){
+    try{
+      if(originEl){
+        /* 버튼 중심에서 원이 퍼져 나가며 새 화면이 드러남 */
+        const r=originEl.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+        const R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y));
+        h.classList.add("vt-circle");
+        const t=document.startViewTransition(run);
+        t.ready.then(()=>h.animate({clipPath:["circle(0px at "+x+"px "+y+"px)","circle("+R+"px at "+x+"px "+y+"px)"]},
+          {duration:750,easing:"cubic-bezier(.4,0,.2,1)",pseudoElement:"::view-transition-new(root)"})).catch(()=>{});
+        t.finished.finally(()=>h.classList.remove("vt-circle"));
+        return;
+      }
+      document.startViewTransition(run);return;
+    }catch(e){h.classList.remove("vt-circle")}
+  }
+  run();
+}
+/* 버튼 표시도 화면이 바뀌는 그 순간에 함께 갱신 (페이드 안에서 같이 바뀜) */
+function setTheme(t){return quietSwitch(()=>{setThemeNow(t);renderSettings()})}
+function setThemeNow(t){
+  const v=t==="light"||t==="dark"?t:"system";
+  if(v==="system")delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=v;
+  store.set("mq-theme",v);
+}
+function renderSettings(){
+  const t=store.get("mq-theme","system");
+  document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.themeOpt===t)));
+  $("setAccount").innerHTML=me?'<span class="acct">'+(meInfo&&meInfo.photo?'<img src="'+esc(meInfo.photo)+'" alt="" referrerpolicy="no-referrer">':"")+"<span><b>"+esc(meName())+"</b><br>"+esc(meInfo&&meInfo.email||"")+"</span></span>":"로그인하지 않았어요. Google로 로그인하면 기록이 저장되고, 내 기록은 나만 볼 수 있어요.";
+  $("setSwitch").textContent=me?"로그아웃":"로그인";
+  $("setMigrate").hidden=!me;$("setNick").hidden=!me;
+}
+function openSettings(){renderSettings();openM("tutScrim")}
+
+/* ---------- Modals ---------- */
+let lastFocus=null;
+function openM(id){lastFocus=document.activeElement;const s=$(id);s.classList.add("open");if(id!=="loginScrim"){const f=s.querySelector(".primary");if(f&&fine())setTimeout(()=>f.focus(),50)}}
+function closeM(id){$(id).classList.remove("open");if(id==="tutScrim")store.set("mq-tut",true);if(lastFocus&&lastFocus.focus&&fine())lastFocus.focus()}
+document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>closeM(b.dataset.close)));
+document.querySelectorAll(".scrim").forEach(s=>s.addEventListener("click",e=>{if(e.target===s&&s.id!=="loginScrim")closeM(s.id)}));
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){const o=document.querySelector(".scrim.open");if(o&&o.id!=="loginScrim"){if(o.id==="cfmScrim")cfmAction=null;closeM(o.id)}}});
+
+/* ---------- Wire up ---------- */
+$("enterBtn").onclick=()=>answer(false);
+$("answer").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();answer(false)}});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&browsing&&document.activeElement!==$("answer")&&!document.querySelector(".scrim.open")){e.preventDefault();exitBrowse();return}if(e.key==="Enter"&&st&&st.busy&&document.activeElement!==$("answer")&&!document.querySelector(".scrim.open")){e.preventDefault();advance()}});
+$("passBtn").onclick=()=>answer(true);
+$("hintBtn").onclick=useHint;
+$("zIn").onclick=()=>(browsing?mapD:(viewMap||maps[active])).zoomIn(1);
+$("zOut").onclick=()=>(browsing?mapD:(viewMap||maps[active])).zoomOut(1);
+
+/* ---------- Practice: city list + browse ---------- */
+let browsing=null,listQuery="";
+function startBrowse(city){
+  browsing=city;
+  mapD.setView([city.lat,city.lng],city.zoom,{animate:false});
+  layerD.classList.remove("off");document.body.classList.add("browsing");
+  renderBrowse();$("browseCard").classList.add("show");
+}
+function renderBrowse(){
+  const c=browsing;if(!c)return;
+  const f=me?favOf(c.en):null;
+  let h='<span class="verdict browse">둘러보기</span><div class="city">'+esc(c.en)+"<span>"+esc(c.ko)+"</span>"+(me?starBtn(c.en):"")+'</div><div class="country">'+esc(c.cEn)+" · "+esc(c.cKo)+"</div>";
+  if(f)h+='<div class="memo-line">'+(f.memo?'<span class="memo-txt">📝 '+esc(f.memo)+"</span>":"")+'<button class="memo-btn" data-memo="'+esc(c.en)+'">'+(f.memo?"메모 고치기":"📝 메모 쓰기")+"</button></div>";
+  h+='<div class="browse-btns"><button class="memo-btn" id="browseList">← 목록</button><button class="memo-btn" id="browseExit">연습으로 돌아가기</button></div>';
+  $("browseCard").innerHTML=h;
+}
+function exitBrowse(){
+  if(!browsing)return;
+  browsing=null;layerD.classList.add("off");document.body.classList.remove("browsing");
+  $("browseCard").classList.remove("show");
+  if(fine())$("answer").focus();
+}
+$("browseCard").addEventListener("click",e=>{
+  if(e.target.closest("#browseExit")){exitBrowse();return}
+  if(e.target.closest("#browseList")){openList()}
+});
+function renderList(){
+  const pool=poolFor(settings.regions,settings.favOnly),q=norm(listQuery);
+  const items=q?pool.filter(c=>[c.en,c.ko,c.cEn,c.cKo,...c.aliases].some(x=>norm(x).includes(q))):pool;
+  $("listNote").textContent=scopeLabel(settings.regions)+(settings.favOnly?" · ★ ":" · ")+items.length+"개";
+  let h="";
+  CONTINENTS.forEach(ct=>ct.regions.forEach(([rid,rn])=>{
+    const rows=items.filter(c=>c.region===rid).sort((a,b)=>a.cKo.localeCompare(b.cKo,"ko")||a.ko.localeCompare(b.ko,"ko"));
+    if(!rows.length)return;
+    h+='<h3 class="rec-h">'+rn+' <span class="muted">'+rows.length+'</span></h3><ul class="rec-list city-list">'+rows.map(c=>{
+      const f=me?favOf(c.en):null;
+      return '<li><button class="list-row" data-browse="'+esc(c.en)+'"><span><b>'+esc(c.en)+"</b> "+esc(c.ko)+(f&&f.memo?" 📝":"")+'</span><span class="muted">'+esc(c.cKo)+"</span></button>"+(me?starBtn(c.en):"")+"</li>";
+    }).join("")+"</ul>";
+  }));
+  $("listBody").innerHTML=h||'<p class="muted">찾는 도시가 없어요.</p>';
+}
+function openList(){$("listSearch").value=listQuery;renderList();openM("listScrim")}
+$("listBtn").onclick=openList;
+$("listSearch").addEventListener("input",e=>{listQuery=e.target.value;renderList()});
+$("listBody").addEventListener("click",e=>{
+  const b=e.target.closest("[data-browse]");if(!b)return;
+  const c=CITY_BY_EN[b.dataset.browse];if(!c)return;
+  closeM("listScrim");startBrowse(c);
+});
+["listBtn"].forEach(id=>$(id).addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()}));
+/* 버튼을 눌러도 입력창 포커스(키보드)가 유지되게 */
+["enterBtn","passBtn","hintBtn","zIn","zOut"].forEach(id=>$(id).addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()}));
+$("tutBtn").onclick=openSettings;
+$("themeSeg").addEventListener("click",e=>{const b=e.target.closest("[data-theme-opt]");if(!b)return;setTheme(b.dataset.themeOpt)});
+$("setSwitch").onclick=()=>{closeM("tutScrim");if(me)logout();else setTimeout(openLogin,200)};
+$("setNick").onclick=()=>{closeM("tutScrim");setTimeout(()=>openNick(false),200)};
+$("setMigrate").onclick=()=>{closeM("tutScrim");setTimeout(openMigrate,200)};
+$("recBtn").onclick=()=>openRecords();
+$("scopeBtn").onclick=openScope;
+document.querySelector(".mode").addEventListener("click",e=>{
+  const b=e.target.closest("[data-mode]");if(!b)return;
+  if(b.dataset.mode===mode&&st&&st.kind!=="review")return;
+  mode=b.dataset.mode;store.set("mq-mode",mode);renderMode();
+  setTimeout(newGame,60);
+});
+
+function applyHard(){document.body.classList.toggle("hard",hardOn);$("hardBtn").setAttribute("aria-pressed",String(hardOn))}
+$("hardBtn").onclick=()=>{hardOn=!hardOn;store.set("mq-hard",hardOn);quietSwitch(()=>{applyHard();newGame()},$("hardBtn"));toast(hardOn?"HARD 모드: 소도시까지 나와요.":"HARD 모드를 껐어요.")};
+$("hardBtn").addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()});
+applyHard();
+updateUser();
+newGame();
+snapPill();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(snapPill);
+new ResizeObserver(snapPill).observe(document.querySelector(".mode"));
+layout();
+initAuth();
+</script>
+</body>
+</html>
