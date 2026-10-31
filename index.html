@@ -1360,7 +1360,8 @@ function quietSwitch(fn,originEl){
   }
   run();
 }
-function setTheme(t){return quietSwitch(()=>setThemeNow(t))}
+/* 버튼 표시도 화면이 바뀌는 그 순간에 함께 갱신 (페이드 안에서 같이 바뀜) */
+function setTheme(t){return quietSwitch(()=>{setThemeNow(t);renderSettings()})}
 function setThemeNow(t){
   const v=t==="light"||t==="dark"?t:"system";
   if(v==="system")delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=v;
@@ -1445,7 +1446,7 @@ $("listBody").addEventListener("click",e=>{
 /* 버튼을 눌러도 입력창 포커스(키보드)가 유지되게 */
 ["enterBtn","passBtn","hintBtn","zIn","zOut"].forEach(id=>$(id).addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()}));
 $("tutBtn").onclick=openSettings;
-$("themeSeg").addEventListener("click",e=>{const b=e.target.closest("[data-theme-opt]");if(!b)return;setTheme(b.dataset.themeOpt);renderSettings()});
+$("themeSeg").addEventListener("click",e=>{const b=e.target.closest("[data-theme-opt]");if(!b)return;setTheme(b.dataset.themeOpt)});
 $("setSwitch").onclick=()=>{closeM("tutScrim");if(me)logout();else setTimeout(openLogin,200)};
 $("setNick").onclick=()=>{closeM("tutScrim");setTimeout(()=>openNick(false),200)};
 $("setMigrate").onclick=()=>{closeM("tutScrim");setTimeout(openMigrate,200)};
