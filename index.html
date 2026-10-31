@@ -265,6 +265,7 @@ body.browsing #reveal{opacity:0}
 .list-row:hover b{text-decoration:underline;text-underline-offset:3px}
 .google-btn{width:100%;border:1.5px solid var(--ink);background:var(--surface);color:var(--ink);border-radius:999px;padding:12px 18px;font-size:17px;font-weight:700;box-shadow:3px 3px 0 var(--ink);transition:transform .12s,box-shadow .12s}
 .google-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+.acct-actions{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px}
 .acct{display:flex;align-items:center;gap:12px;color:var(--ink)}
 .acct img{width:40px;height:40px;border-radius:50%;flex:none}
 .acct span{font-size:14px;line-height:1.4;color:var(--muted)}
@@ -344,6 +345,19 @@ body.browsing #reveal{opacity:0}
   </div>
 </div>
 
+<!-- 닉네임 -->
+<div class="scrim" id="nickScrim" role="dialog" aria-modal="true" aria-labelledby="nickTitle">
+  <div class="sheet small">
+    <div class="sheet-head"><h2 id="nickTitle">어떻게 불러드릴까요?</h2><button class="x" id="nickX" data-close="nickScrim" aria-label="닫기">×</button></div>
+    <div class="sheet-body">
+      <p class="muted" style="margin-top:0">사이트에서 쓸 닉네임이에요. 언제든 Settings에서 바꿀 수 있어요.</p>
+      <input class="login-input" id="nickText" maxlength="12" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="닉네임 (12자까지)" aria-label="닉네임">
+      <p class="muted login-msg" id="nickMsg"></p>
+    </div>
+    <div class="sheet-foot"><button class="toggle-all" id="nickSkip">Google 이름 그대로 쓰기</button><button class="primary" id="nickSave">좋아요</button></div>
+  </div>
+</div>
+
 <!-- 예전 기록 가져오기 -->
 <div class="scrim" id="migScrim" role="dialog" aria-modal="true" aria-labelledby="migTitle">
   <div class="sheet small">
@@ -396,7 +410,7 @@ body.browsing #reveal{opacity:0}
       <div class="group">
         <div class="group-head"><h3>계정</h3><button class="toggle-all" id="setSwitch">로그인</button></div>
         <p class="muted" id="setAccount" style="margin:0"></p>
-        <button class="toggle-all" id="setMigrate" style="margin-top:8px" hidden>예전 아이디 기록 가져오기</button>
+        <div class="acct-actions"><button class="toggle-all" id="setNick" hidden>닉네임 바꾸기</button><button class="toggle-all" id="setMigrate" hidden>예전 아이디 기록 가져오기</button></div>
       </div>
       <div class="group">
         <div class="group-head"><h3>이렇게 플레이해요</h3></div>
@@ -620,7 +634,7 @@ const legacyMe=store.get("mq-me",null);
 let users=store.get("mq-accounts",{});if(!users||typeof users!=="object")users={};
 let me=store.get("mq-uid",null);if(me&&!users[me])me=null;
 let meInfo=me?users[me].info||null:null;
-const meName=()=>meInfo&&meInfo.name?meInfo.name:"내";
+const meName=()=>{const p=me?users[me]:null;return (p&&p.nick)||(meInfo&&meInfo.name)||"내"};
 const saveLocal=()=>store.set("mq-accounts",users);
 const saveUsers=()=>{saveLocal();scheduleSync()};
 
@@ -644,7 +658,7 @@ async function fetchLegacy(id){
   return parseDoc(await r.json());
 }
 async function pushRemote(id,p){
-  p.cities={};const data=JSON.stringify({games:p.games,cities:{},favs:p.favs||{},created:p.created,migrated:p.migrated||[],migrateAsked:!!p.migrateAsked});
+  p.cities={};const data=JSON.stringify({games:p.games,cities:{},favs:p.favs||{},created:p.created,migrated:p.migrated||[],migrateAsked:!!p.migrateAsked,nick:p.nick||""});
   const r=await fetch(docUrl(id),{method:"PATCH",headers:Object.assign({"Content-Type":"application/json"},await authHeaders()),body:JSON.stringify({fields:{data:{stringValue:data},updatedAt:{timestampValue:new Date().toISOString()}}})});
   if(!r.ok)throw new Error("HTTP "+r.status);
 }
@@ -673,7 +687,7 @@ function mergeLegacy(remote,local){
   const byT={};(remote.games||[]).forEach(g=>byT[g.t]=g);(local.games||[]).forEach(g=>byT[g.t]=g);
   const cities=JSON.parse(JSON.stringify(remote.cities||{}));
   Object.entries(local.cities||{}).forEach(([en,s])=>{const r=cities[en]||{s:0,c:0};r.s+=s.s;r.c+=s.c;cities[en]=r});
-  return{games:Object.values(byT).sort((a,b)=>a.t-b.t).slice(-200),cities,favs:Object.assign({},remote.favs||{},local.favs||{}),migrated:[...new Set([...(remote.migrated||[]),...(local.migrated||[])])],migrateAsked:!!(remote.migrateAsked||local.migrateAsked),created:Math.min(remote.created||Date.now(),local.created||Date.now())};
+  return{games:Object.values(byT).sort((a,b)=>a.t-b.t).slice(-200),cities,favs:Object.assign({},remote.favs||{},local.favs||{}),migrated:[...new Set([...(remote.migrated||[]),...(local.migrated||[])])],migrateAsked:!!(remote.migrateAsked||local.migrateAsked),nick:local.nick||remote.nick||"",created:Math.min(remote.created||Date.now(),local.created||Date.now())};
 }
 /* 서버 기록과 이 기기 기록을 합쳐 최신 상태를 만든다 */
 function reconcile(id,remote){
@@ -681,7 +695,7 @@ function reconcile(id,remote){
   if(remote===null){const p=local||{games:[],cities:{},created:Date.now()};p.pending=true;return p}
   if(local&&!local.syncedAt){const m=mergeLegacy(remote,local);m.pending=true;return m}
   if(local&&local.pending)return local;
-  return{games:remote.games||[],cities:remote.cities||{},favs:remote.favs||{},migrated:remote.migrated||[],migrateAsked:!!remote.migrateAsked,created:remote.created||Date.now(),syncedAt:Date.now(),pending:false,info:local&&local.info};
+  return{games:remote.games||[],cities:remote.cities||{},favs:remote.favs||{},migrated:remote.migrated||[],migrateAsked:!!remote.migrateAsked,nick:remote.nick||"",created:remote.created||Date.now(),syncedAt:Date.now(),pending:false,info:local&&local.info};
 }
 async function refreshFromServer(){
   const id=me;if(!id)return;
@@ -1098,7 +1112,6 @@ async function onAuth(user){
   if(!users[uid])users[uid]={games:[],cities:{},favs:{},created:Date.now()};
   users[uid].info=meInfo;saveLocal();updateUser();
   if($("loginScrim").classList.contains("open"))closeM("loginScrim");
-  if(welcomePending){welcomePending=false;toast(meName()+"님, 반가워요!")}
   let remote=null,failed=false;
   try{remote=await fetchRemote(uid)}catch(e){failed=true}
   if(me!==uid)return;
@@ -1106,10 +1119,11 @@ async function onAuth(user){
     users[uid]=reconcile(uid,remote);users[uid].info=meInfo;saveLocal();
     if(users[uid].pending)syncNow();else{syncState="saved";renderSync()}
   }else{syncState="error";renderSync()}
-  updateScope();
+  updateScope();updateUser();
   if($("recScrim").classList.contains("open"))openRecords(true);
-  if(!failed&&!users[uid].migrateAsked&&(remote===null||Object.keys(legacyUsers).length))setTimeout(openMigrate,450);
-  else if(!store.get("mq-tut",false))setTimeout(openSettings,450);
+  if(!failed&&!users[uid].nick){welcomePending=false;setTimeout(()=>openNick(true),450);return}
+  if(welcomePending){welcomePending=false;toast(meName()+"님, 반가워요!")}
+  nextAfterNick();
 }
 function googleLogin(){
   const msg=$("loginMsg");
@@ -1131,6 +1145,33 @@ function logout(){if(fbAuth&&fbMod)fbMod.signOut(fbAuth);else{me=null;meInfo=nul
 function afterLogin(){if(!store.get("mq-tut",false))setTimeout(openSettings,300)}
 $("googleBtn").onclick=googleLogin;
 $("guestBtn").onclick=$("loginX").onclick=()=>{store.set("mq-guest",true);closeM("loginScrim");afterLogin()};
+
+/* ---------- 닉네임 ---------- */
+let nickFirst=false;
+function needMigrate(){const p=profile();return !!p&&!p.migrateAsked}
+function nextAfterNick(){
+  if(needMigrate()&&(Object.keys(legacyUsers).length||!(profile().games||[]).length))setTimeout(openMigrate,350);
+  else if(!store.get("mq-tut",false))setTimeout(openSettings,350);
+}
+function openNick(first){
+  nickFirst=!!first;const p=profile();if(!p)return;
+  $("nickTitle").textContent=first?"어떻게 불러드릴까요?":"닉네임 바꾸기";
+  $("nickText").value=p.nick||(meInfo&&meInfo.name)||"";
+  $("nickMsg").textContent="";$("nickSkip").hidden=!first;$("nickX").hidden=first;
+  openM("nickScrim");setTimeout(()=>{const i=$("nickText");i.focus();i.select()},80);
+}
+function saveNick(useDefault){
+  const p=profile();if(!p)return;
+  let v=useDefault?((meInfo&&meInfo.name)||""):$("nickText").value.trim();
+  v=v.slice(0,12);
+  if(!v){const i=$("nickText");i.classList.remove("shake");void i.offsetWidth;i.classList.add("shake");$("nickMsg").textContent="한 글자 이상 적어 주세요.";return}
+  p.nick=v;saveUsers();updateUser();closeM("nickScrim");
+  if($("recScrim").classList.contains("open"))openRecords(true);
+  if(nickFirst){toast(v+"님, 반가워요!");nickFirst=false;nextAfterNick()}else toast("이제 "+v+"님으로 불러드릴게요.");
+}
+$("nickSave").onclick=()=>saveNick(false);
+$("nickSkip").onclick=()=>saveNick(true);
+$("nickText").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();saveNick(false)}});
 
 /* ---------- 예전 아이디 기록 가져오기 ---------- */
 function openMigrate(){
@@ -1215,7 +1256,7 @@ function renderSettings(){
   document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.themeOpt===t)));
   $("setAccount").innerHTML=me?'<span class="acct">'+(meInfo&&meInfo.photo?'<img src="'+esc(meInfo.photo)+'" alt="" referrerpolicy="no-referrer">':"")+"<span><b>"+esc(meName())+"</b><br>"+esc(meInfo&&meInfo.email||"")+"</span></span>":"로그인하지 않았어요. Google로 로그인하면 기록이 저장되고, 내 기록은 나만 볼 수 있어요.";
   $("setSwitch").textContent=me?"로그아웃":"로그인";
-  $("setMigrate").hidden=!me;
+  $("setMigrate").hidden=!me;$("setNick").hidden=!me;
 }
 function openSettings(){renderSettings();openM("tutScrim")}
 
@@ -1291,6 +1332,7 @@ $("listBody").addEventListener("click",e=>{
 $("tutBtn").onclick=openSettings;
 $("themeSeg").addEventListener("click",e=>{const b=e.target.closest("[data-theme-opt]");if(!b)return;setTheme(b.dataset.themeOpt);renderSettings()});
 $("setSwitch").onclick=()=>{closeM("tutScrim");if(me)logout();else setTimeout(openLogin,200)};
+$("setNick").onclick=()=>{closeM("tutScrim");setTimeout(()=>openNick(false),200)};
 $("setMigrate").onclick=()=>{closeM("tutScrim");setTimeout(openMigrate,200)};
 $("recBtn").onclick=()=>openRecords();
 $("scopeBtn").onclick=openScope;
