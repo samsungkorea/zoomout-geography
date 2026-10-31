@@ -70,17 +70,20 @@ header{grid-area:head;display:flex;align-items:center;justify-content:space-betw
 h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,3.2vw,38px);letter-spacing:-.02em;line-height:1.1;margin:0}
 .qnum{font-family:var(--display);font-weight:700;font-size:clamp(22px,3.2vw,38px);letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
 .qnum small{font-size:.5em;color:var(--muted);font-weight:500;margin-left:4px}
-.mode{display:inline-flex;border:1.5px solid var(--ink);border-radius:999px;padding:2px;gap:2px}
-.mode button{border:0;background:transparent;border-radius:999px;padding:3px 12px;font-family:var(--display);font-weight:500;font-size:15px;transition:background .25s,color .25s}
-.mode button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.mode{position:relative;display:inline-flex;border:1.5px solid var(--ink);border-radius:999px;padding:2px;gap:2px}
+.mode-pill{position:absolute;top:2px;bottom:2px;left:2px;width:0;border-radius:999px;background:var(--ink);z-index:0;pointer-events:none;transition:left .34s cubic-bezier(.34,1.35,.5,1),width .34s cubic-bezier(.34,1.35,.5,1),background-color .5s ease}
+.mode-pill.no-anim{transition:none}
+.mode button{position:relative;z-index:1;border:0;background:transparent;border-radius:999px;padding:3px 12px;font-family:var(--display);font-weight:500;font-size:15px;transition:color .3s ease}
+.mode button[aria-pressed="true"]{color:var(--surface)}
 
 .map-cell{grid-area:map;container-type:size;min-width:0;min-height:0;padding:9px;display:flex;align-items:flex-start;justify-content:flex-start}
 .map-wrap{position:relative;width:min(100cqw,100cqh);height:min(100cqw,100cqh);isolation:isolate;z-index:0}
 .map-box{position:absolute;inset:0;border-radius:6px;overflow:hidden;background:var(--map-bg)}
-.map-layer{position:absolute;inset:0;z-index:1;isolation:isolate;pointer-events:none;transition:opacity .7s ease,filter .7s ease,transform 1.1s cubic-bezier(.2,.7,.2,1)}
+.map-layer{position:absolute;inset:0;z-index:1;isolation:isolate;pointer-events:none;visibility:visible;transition:opacity .7s ease,filter .7s ease,transform 1.1s cubic-bezier(.2,.7,.2,1),visibility 0s}
 body.practice .map-layer:not(.off){pointer-events:auto}
 #layerC{z-index:0}
-.map-layer.off{opacity:0;filter:blur(12px);transform:scale(1.05)}
+/* 숨은 지도는 페이드가 끝나면 아예 그리지 않음 (사진은 계속 미리 불러옴) */
+.map-layer.off{opacity:0;filter:blur(12px);transform:scale(1.05);visibility:hidden;transition:opacity .7s ease,filter .7s ease,transform 1.1s cubic-bezier(.2,.7,.2,1),visibility 0s linear .75s}
 .map-layer .leaflet-container{width:100%;height:100%;background:var(--map-bg)}
 .leaflet-control-attribution{font-size:10px!important;background:rgba(0,0,0,.45)!important;color:#d8dee3!important;pointer-events:none}
 .leaflet-control-attribution a{color:#d8dee3!important}
@@ -272,7 +275,7 @@ body.browsing #reveal{opacity:0}
 .acct b{color:var(--ink);font-size:16px}
 /* ---------- HARD: 야간 정찰 ---------- */
 body{transition:background-color .6s ease,color .6s ease}
-.tick,.bar,.enter,.answer,.mode,.mode button,.qnum,.sheet,.chip,.hard-btn{transition:background-color .5s ease,border-color .5s ease,color .5s ease,box-shadow .5s ease}
+.tick,.bar,.enter,.answer,.mode,.qnum,.sheet,.chip,.hard-btn{transition:background-color .5s ease,border-color .5s ease,color .5s ease,box-shadow .5s ease}
 .hard-btn{border:1.5px solid var(--ink);background:transparent;color:var(--ink);border-radius:999px;padding:3px 12px;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.06em}
 body.hard{--bg:#0b1322;--surface:#111c30;--ink:#e6ebf3;--muted:#8d9ab0;--line:#22304a;--amber:#f2b632;--focus:#f2b632;--map-bg:#060b14;color-scheme:dark;
   background-image:linear-gradient(rgba(242,182,50,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(242,182,50,.045) 1px,transparent 1px);background-size:44px 44px}
@@ -286,12 +289,20 @@ body.hard .answer.ok{border-color:var(--ok)}
 body.hard .answer.bad{border-color:var(--bad)}
 body.hard .enter{border-color:var(--amber);box-shadow:3px 3px 0 var(--amber)}
 body.hard .mode{border-color:var(--amber)}
-body.hard .mode button[aria-pressed="true"]{background:var(--amber);color:#0b1322}
+body.hard .mode button[aria-pressed="true"]{color:#0b1322}
+body.hard .mode-pill{background:var(--amber)}
 body.hard .primary{background:var(--amber);border-color:var(--amber);color:#0b1322}
 body.hard .chip[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:#0b1322}
 body.hard .map-box{box-shadow:0 0 0 1px rgba(242,182,50,.35),0 0 40px rgba(242,182,50,.08)}
 .hard-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:4px;background:#f2b632;color:#0b1322;font-size:11px;font-weight:700;letter-spacing:.05em;vertical-align:1px}
 .hard-cele .result-big{color:#f2b632}
+/* 테마를 바꾸는 순간에는 모든 전환 효과를 끔 (휴대폰 렉 방지) */
+html.theme-switching *,html.theme-switching *::before,html.theme-switching *::after{transition:none!important}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.45s;animation-timing-function:ease}
+html.vt-circle::view-transition-old(root),html.vt-circle::view-transition-new(root){animation:none;mix-blend-mode:normal}
+html.vt-circle::view-transition-new(root){z-index:2}
+/* 휴대폰·태블릿: 팝업 뒤 흐림 효과 대신 진한 반투명 배경 (화면 전체를 다시 그리는 부담 제거) */
+@media (pointer:coarse){.scrim{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(8,14,20,.62)}}
 #confetti{position:fixed;inset:0;width:100%;height:100%;z-index:6000;pointer-events:none;display:none}
 #confetti.on{display:block}
 
@@ -306,6 +317,7 @@ body.hard .map-box{box-shadow:0 0 0 1px rgba(242,182,50,.35),0 0 40px rgba(242,1
     <div class="title-row">
       <h1>Map Quiz in Satellite</h1>
       <div class="mode" role="group" aria-label="모드">
+        <span class="mode-pill no-anim" id="modePill" aria-hidden="true"></span>
         <button data-mode="quiz" aria-pressed="true">Quiz</button><button data-mode="practice" aria-pressed="false">Practice</button>
       </div>
       <button class="hard-btn" id="hardBtn" aria-pressed="false" title="소도시까지 나오는 HARD 모드">HARD</button>
@@ -916,7 +928,10 @@ function newGame(){
   if(mode==="practice")startGame("practice",pool);
   else startGame("quiz",pool.slice(0,settings.count===0?pool.length:Math.min(settings.count,pool.length)));
 }
-function renderMode(){document.querySelectorAll(".mode button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)))}
+function renderMode(){document.querySelectorAll(".mode button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)));movePill()}
+/* 스위치처럼 미끄러지는 배경 */
+function movePill(){const b=document.querySelector('.mode button[aria-pressed="true"]'),p=$("modePill");if(!b||!p)return;p.style.left=b.offsetLeft+"px";p.style.width=b.offsetWidth+"px"}
+function snapPill(){const p=$("modePill");if(!p)return;p.classList.add("no-anim");movePill();void p.offsetWidth;requestAnimationFrame(()=>p.classList.remove("no-anim"))}
 function renderTop(){
   const n=Math.min(st.idx+1,st.queue.length);
   const small=st.kind==="practice"?"연습":"/ "+st.queue.length+(st.kind==="review"?" 복습":"");
@@ -1322,7 +1337,31 @@ $("applyBtn").onclick=()=>{
 function openScope(){draft={regions:new Set(settings.regions),count:settings.count,favOnly:settings.favOnly&&!!me};renderSheet();openM("setScrim")}
 
 /* ---------- Settings: theme + account + tutorial ---------- */
-function setTheme(t){
+/* 색 바꾸기: 요소마다 따로 애니메이션하지 않고, 바뀌기 전·후 화면을 사진처럼 찍어 한 번에 겹쳐 페이드 (휴대폰도 가벼움)
+   View Transition을 지원하지 않는 브라우저는 바로 바뀜 */
+function quietSwitch(fn,originEl){
+  const h=document.documentElement;
+  const run=()=>{h.classList.add("theme-switching");fn();void h.offsetWidth;requestAnimationFrame(()=>requestAnimationFrame(()=>h.classList.remove("theme-switching")))};
+  if(document.startViewTransition&&!matchMedia("(prefers-reduced-motion: reduce)").matches){
+    try{
+      if(originEl){
+        /* 버튼 중심에서 원이 퍼져 나가며 새 화면이 드러남 */
+        const r=originEl.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+        const R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y));
+        h.classList.add("vt-circle");
+        const t=document.startViewTransition(run);
+        t.ready.then(()=>h.animate({clipPath:["circle(0px at "+x+"px "+y+"px)","circle("+R+"px at "+x+"px "+y+"px)"]},
+          {duration:750,easing:"cubic-bezier(.4,0,.2,1)",pseudoElement:"::view-transition-new(root)"})).catch(()=>{});
+        t.finished.finally(()=>h.classList.remove("vt-circle"));
+        return;
+      }
+      document.startViewTransition(run);return;
+    }catch(e){h.classList.remove("vt-circle")}
+  }
+  run();
+}
+function setTheme(t){return quietSwitch(()=>setThemeNow(t))}
+function setThemeNow(t){
   const v=t==="light"||t==="dark"?t:"system";
   if(v==="system")delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=v;
   store.set("mq-theme",v);
@@ -1415,15 +1454,19 @@ $("scopeBtn").onclick=openScope;
 document.querySelector(".mode").addEventListener("click",e=>{
   const b=e.target.closest("[data-mode]");if(!b)return;
   if(b.dataset.mode===mode&&st&&st.kind!=="review")return;
-  mode=b.dataset.mode;store.set("mq-mode",mode);newGame();
+  mode=b.dataset.mode;store.set("mq-mode",mode);renderMode();
+  setTimeout(newGame,60);
 });
 
 function applyHard(){document.body.classList.toggle("hard",hardOn);$("hardBtn").setAttribute("aria-pressed",String(hardOn))}
-$("hardBtn").onclick=()=>{hardOn=!hardOn;store.set("mq-hard",hardOn);applyHard();newGame();toast(hardOn?"HARD 모드: 소도시까지 나와요.":"HARD 모드를 껐어요.")};
+$("hardBtn").onclick=()=>{hardOn=!hardOn;store.set("mq-hard",hardOn);quietSwitch(()=>{applyHard();newGame()},$("hardBtn"));toast(hardOn?"HARD 모드: 소도시까지 나와요.":"HARD 모드를 껐어요.")};
 $("hardBtn").addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()});
 applyHard();
 updateUser();
 newGame();
+snapPill();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(snapPill);
+new ResizeObserver(snapPill).observe(document.querySelector(".mode"));
 layout();
 initAuth();
 </script>
