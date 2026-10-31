@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Map Quiz in Satellite</title>
+<script>try{var t=JSON.parse(localStorage.getItem("mq-theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -258,7 +259,7 @@ footer{grid-area:foot;display:flex;align-items:center;justify-content:space-betw
 
   <footer>
     <div class="left-actions">
-      <button class="link" id="tutBtn">Tutorial</button>
+      <button class="link" id="tutBtn">Settings</button>
       <button class="link" id="recBtn">기록</button>
     </div>
     <button class="scope" id="scopeBtn" aria-haspopup="dialog"><span class="txt" id="scopeTxt">전 세계</span><span class="caret"></span></button>
@@ -303,20 +304,33 @@ footer{grid-area:foot;display:flex;align-items:center;justify-content:space-betw
   </div>
 </div>
 
-<!-- Tutorial -->
+<!-- Settings (theme, account, tutorial) -->
 <div class="scrim" id="tutScrim" role="dialog" aria-modal="true" aria-labelledby="tutTitle">
   <div class="sheet tut">
-    <div class="sheet-head"><h2 id="tutTitle">이렇게 플레이해요</h2><button class="x" data-close="tutScrim" aria-label="닫기">×</button></div>
+    <div class="sheet-head"><h2 id="tutTitle">설정</h2><button class="x" data-close="tutScrim" aria-label="닫기">×</button></div>
     <div class="sheet-body">
-      <ol>
-        <li>라벨 없는 위성 사진이 한 장 나와요. 퀴즈 모드에서는 지도가 움직이지 않아요.</li>
-        <li>어느 도시인지 영어나 한글로 입력하고 Enter를 누르세요. 악센트와 한두 글자 오타는 봐줘요.</li>
-        <li>막히면 Hint를 누르세요. 첫 번째는 나라, 두 번째는 첫 글자를 알려줘요.</li>
-        <li>Practice 모드는 문제 수 제한이 없고, 두 손가락으로 지도를 벌리거나 오므려 확대·축소할 수 있어요.</li>
-        <li>한 세트가 끝나면 틀린 도시만 골라 복습할 수 있어요. 로그인하면 기록 탭에 결과가 쌓여요.</li>
-      </ol>
+      <div class="group">
+        <div class="group-head"><h3>화면 모드</h3></div>
+        <div class="seg" id="themeSeg">
+          <button data-theme-opt="system">시스템</button><button data-theme-opt="light">라이트</button><button data-theme-opt="dark">다크</button>
+        </div>
+      </div>
+      <div class="group">
+        <div class="group-head"><h3>계정</h3><button class="toggle-all" id="setSwitch">아이디 바꾸기</button></div>
+        <p class="muted" id="setAccount" style="margin:0"></p>
+      </div>
+      <div class="group">
+        <div class="group-head"><h3>이렇게 플레이해요</h3></div>
+        <ol>
+          <li>라벨 없는 위성 사진이 한 장 나와요. 퀴즈 모드에서는 지도가 움직이지 않아요.</li>
+          <li>어느 도시인지 영어나 한글로 입력하고 Enter를 누르세요. 악센트와 한두 글자 오타, LA·NYC 같은 약칭도 인정해요.</li>
+          <li>막히면 Hint를 누르세요. 첫 번째는 나라, 두 번째는 첫 글자를 알려줘요.</li>
+          <li>Practice 모드는 문제 수 제한이 없고, 두 손가락으로 지도를 벌리거나 오므려 확대·축소할 수 있어요.</li>
+          <li>한 세트가 끝나면 틀린 도시만 골라 복습할 수 있어요. 로그인하면 Records에 결과가 쌓여요.</li>
+        </ol>
+      </div>
     </div>
-    <div class="sheet-foot"><span class="muted">위성 사진: Esri World Imagery</span><button class="primary" data-close="tutScrim">시작하기</button></div>
+    <div class="sheet-foot"><span class="muted">위성 사진: Esri World Imagery</span><button class="primary" data-close="tutScrim">닫기</button></div>
   </div>
 </div>
 
@@ -657,7 +671,7 @@ function startGame(kind,list){
   active=0;place(0,list[0]);place(1,list[1]);
   layers[0].classList.remove("off");layers[1].classList.add("off");
   placeReveal(list[0]);
-  $("passBtn").textContent=kind==="practice"?"정답 보기":"Pass";
+  $("passBtn").textContent=kind==="practice"?"Answer":"Pass";
   renderMode();renderTop();renderHint();resetInput(true);updateScope();
 }
 function newGame(){
@@ -816,7 +830,7 @@ function openRecords(){
     const g=p.games,tot=g.reduce((a,x)=>a+x.total,0),cor=g.reduce((a,x)=>a+x.correct,0),perfect=g.filter(x=>x.correct===x.total).length;
     html='<div class="stats"><div><b>'+g.length+'</b><span>끝낸 세트</span></div><div><b>'+(tot?Math.round(cor/tot*100)+"%":"–")+'</b><span>평균 정답률</span></div><div><b>'+perfect+'</b><span>전부 맞힌 세트</span></div></div>';
     html+='<h3 class="rec-h">최근 기록</h3>';
-    html+=g.length?'<ul class="rec-list" id="recGames">'+g.slice().reverse().map(x=>'<li><span>'+fmtDate(x.t)+' <span class="muted">'+esc(x.scope)+'</span></span><span class="right"><span class="r'+(x.correct===x.total?" perfect":"")+'">'+x.correct+" / "+x.total+'</span><button class="del" data-del="'+x.t+'" aria-label="이 기록 삭제">삭제</button></span></li>').join("")+'</ul><button class="toggle-all del-all" id="delAll">모든 기록 삭제</button>':'<p class="muted">아직 끝낸 세트가 없어요. 퀴즈를 한 세트 끝내면 여기에 쌓여요.</p>';
+    html+=g.length?'<ul class="rec-list" id="recGames">'+g.slice().reverse().map(x=>'<li><span>'+fmtDate(x.t)+' <span class="muted">'+esc(x.scope)+'</span></span><span class="right"><span class="r'+(x.correct===x.total?" perfect":"")+'">'+x.correct+" / "+x.total+'</span><button class="del" data-del="'+x.t+'" aria-label="이 기록 삭제">삭제</button></span></li>').join("")+'</ul>':'<p class="muted">아직 끝낸 세트가 없어요. 퀴즈를 한 세트 끝내면 여기에 쌓여요.</p>';
     const weak=weakCities();
     html+='<h3 class="rec-h">자주 틀린 도시</h3>';
     html+=weak.length?'<ul class="rec-list">'+weak.slice(0,10).map(w=>"<li><span><b>"+esc(w.city.en)+"</b> "+esc(w.city.ko)+'</span><span class="r">'+w.wrong+"번 틀림 / "+w.seen+"번 출제</span></li>").join("")+"</ul>":'<p class="muted">아직 틀린 도시가 없어요.</p>';
@@ -844,16 +858,12 @@ $("recBody").addEventListener("click",e=>{
     confirmM(fmtDate(g.t)+" "+g.scope+" 세트 ("+g.correct+" / "+g.total+") 기록을 삭제해요. 되돌릴 수 없어요.","삭제",()=>{
       p.games=p.games.filter(x=>x.t!==t);saveUsers();openRecords();
     });
-  }else if(e.target.closest("#delAll")){
-    confirmM(me+"님의 세트 기록 "+p.games.length+"개와 자주 틀린 도시 통계를 모두 삭제해요. 되돌릴 수 없어요.","모두 삭제",()=>{
-      p.games=[];p.cities={};saveUsers();openRecords();
-    });
   }
 });
 $("recSwitch").onclick=()=>{closeM("recScrim");setTimeout(openLogin,200)};
 
 /* ---------- Login ---------- */
-function updateUser(){$("recBtn").innerHTML="기록"+(me?'<span class="who">'+esc(me)+"</span>":"")}
+function updateUser(){$("recBtn").innerHTML="Records"+(me?'<span class="who">'+esc(me)+"</span>":"")}
 function openLogin(){
   const ids=Object.keys(users);
   $("knownIds").innerHTML=ids.length?'<span class="muted" style="width:100%">이 기기에서 쓴 아이디</span>'+ids.map(id=>'<button class="chip" data-id="'+esc(id)+'">'+esc(id)+"</button>").join(""):"";
@@ -879,7 +889,7 @@ async function login(id){
   else{syncState="saved";if(users[id].pending)syncNow();toast(remote?id+"님의 기록을 불러왔어요.":id+" 아이디를 새로 만들었어요.")}
   afterLogin();
 }
-function afterLogin(){if(!store.get("mq-tut",false))setTimeout(()=>openM("tutScrim"),300)}
+function afterLogin(){if(!store.get("mq-tut",false))setTimeout(openSettings,300)}
 $("loginBtn").onclick=()=>login($("loginId").value);
 $("loginId").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();login($("loginId").value)}});
 $("knownIds").addEventListener("click",e=>{const b=e.target.closest("[data-id]");if(b)login(b.dataset.id)});
@@ -919,6 +929,20 @@ $("applyBtn").onclick=()=>{
 };
 function openScope(){draft={regions:new Set(settings.regions),count:settings.count};renderSheet();openM("setScrim")}
 
+/* ---------- Settings: theme + account + tutorial ---------- */
+function setTheme(t){
+  const v=t==="light"||t==="dark"?t:"system";
+  if(v==="system")delete document.documentElement.dataset.theme;else document.documentElement.dataset.theme=v;
+  store.set("mq-theme",v);
+}
+function renderSettings(){
+  const t=store.get("mq-theme","system");
+  document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.themeOpt===t)));
+  $("setAccount").textContent=me?me+" 아이디로 로그인 중이에요. 기록은 서버에 저장돼요.":"로그인하지 않았어요. 로그인하면 기록이 저장돼요.";
+  $("setSwitch").textContent=me?"아이디 바꾸기":"로그인";
+}
+function openSettings(){renderSettings();openM("tutScrim")}
+
 /* ---------- Modals ---------- */
 let lastFocus=null;
 function openM(id){lastFocus=document.activeElement;const s=$(id);s.classList.add("open");if(id!=="loginScrim"){const f=s.querySelector(".primary");if(f&&fine())setTimeout(()=>f.focus(),50)}}
@@ -937,7 +961,9 @@ $("zIn").onclick=()=>(viewMap||maps[active]).zoomIn(1);
 $("zOut").onclick=()=>(viewMap||maps[active]).zoomOut(1);
 /* 버튼을 눌러도 입력창 포커스(키보드)가 유지되게 */
 ["enterBtn","passBtn","hintBtn","zIn","zOut"].forEach(id=>$(id).addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()}));
-$("tutBtn").onclick=()=>openM("tutScrim");
+$("tutBtn").onclick=openSettings;
+$("themeSeg").addEventListener("click",e=>{const b=e.target.closest("[data-theme-opt]");if(!b)return;setTheme(b.dataset.themeOpt);renderSettings()});
+$("setSwitch").onclick=()=>{closeM("tutScrim");setTimeout(openLogin,200)};
 $("recBtn").onclick=openRecords;
 $("scopeBtn").onclick=openScope;
 document.querySelector(".mode").addEventListener("click",e=>{
@@ -951,7 +977,7 @@ newGame();
 if(me)refreshFromServer();
 layout();
 if(!me)setTimeout(openLogin,350);
-else if(!store.get("mq-tut",false))setTimeout(()=>openM("tutScrim"),400);
+else if(!store.get("mq-tut",false))setTimeout(openSettings,400);
 </script>
 </body>
 </html>
