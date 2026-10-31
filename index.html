@@ -63,6 +63,7 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,3.2vw,38px);l
 .map-box{position:absolute;inset:0;border-radius:6px;overflow:hidden;background:var(--map-bg)}
 .map-layer{position:absolute;inset:0;z-index:1;isolation:isolate;pointer-events:none;transition:opacity .7s ease,filter .7s ease,transform 1.1s cubic-bezier(.2,.7,.2,1)}
 body.practice .map-layer:not(.off){pointer-events:auto}
+#layerC{z-index:0}
 .map-layer.off{opacity:0;filter:blur(12px);transform:scale(1.05)}
 .map-layer .leaflet-container{width:100%;height:100%;background:var(--map-bg)}
 .leaflet-control-attribution{font-size:10px!important;background:rgba(0,0,0,.45)!important;color:#d8dee3!important;pointer-events:none}
@@ -235,6 +236,7 @@ footer{grid-area:foot;display:flex;align-items:center;justify-content:space-betw
       <div class="map-box" id="mapBox">
         <div class="map-layer" id="layerA"></div>
         <div class="map-layer off" id="layerB"></div>
+        <div class="map-layer off" id="layerC"></div>
         <div class="zoomctl"><button id="zIn" aria-label="확대">+</button><button id="zOut" aria-label="축소">−</button></div>
         <div class="reveal" id="reveal" aria-live="polite"></div>
       </div>
@@ -475,6 +477,19 @@ const CHO="ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
 function choseong(ch){const code=ch.charCodeAt(0)-0xac00;return code>=0&&code<11172?CHO[Math.floor(code/588)]:ch}
 
 
+/* 자주 쓰는 약칭·별명도 정답으로 인정 */
+const EXTRA_ALIASES={
+"New York":"ny|뉴욕시|빅애플|big apple","Los Angeles":"엘에이|로스엔젤레스","San Francisco":"sf|frisco|san fran|샌프란|샌프","Las Vegas":"베가스","Washington, D.C.":"워싱턴dc","New Orleans":"nola|뉴올","Salt Lake City":"slc|솔트레이크","Philadelphia":"philly","Chicago":"chi-town|chitown","Honolulu":"하와이","Montreal":"몬트리얼","Quebec City":"퀘벡","Vancouver":"벤쿠버",
+"Mexico City":"df|mexico df|멕시코시티","Guatemala City":"guate","Panama City":"파나마","San Juan":"산환",
+"Buenos Aires":"ba|baires|부에노스","Rio de Janeiro":"리우데자네이로","São Paulo":"sp|sampa|상파","Bogotá":"보고따","Cusco":"쿠즈코",
+"Saint Petersburg":"spb|piter|상트|상페","Vladivostok":"블라디","Moscow":"모스코바",
+"Kuala Lumpur":"kl|쿠알라|쿠알라룸프르","Ho Chi Minh City":"hcmc|hcm|호치민시","Bangkok":"krung thep|끄룽텝","Ulaanbaatar":"ub|울란","Bandar Seri Begawan":"bsb|반다르","Hong Kong":"hk","Singapore":"sg","Denpasar":"발리섬",
+"Abu Dhabi":"아부다비시","Dubai":"두바이시","Jerusalem":"al-quds|yerushalayim|알쿠드스","Kuwait City":"쿠웨이트",
+"Johannesburg":"jozi|조벅|요벅","Cape Town":"케이프","Addis Ababa":"addis|아디스","Dar es Salaam":"dar|dsm|다르","Kinshasa":"킨사사",
+"Amsterdam":"암스","Frankfurt":"프푸|프랑크프루트","Copenhagen":"cph","Reykjavík":"레이캬비크시",
+"Sydney":"시드니시","Melbourne":"멜본","Wellington":"welly","Christchurch":"chch"
+};
+CITIES.forEach(c=>{const x=EXTRA_ALIASES[c.en];if(x)x.split("|").forEach(a=>{if(!c.aliases.includes(a))c.aliases.push(a)})});
 const CITY_BY_EN={};CITIES.forEach(c=>CITY_BY_EN[c.en]=c);
 
 /* ---------- Storage ---------- */
@@ -554,7 +569,7 @@ const profile=()=>me?users[me]:null;
 /* ---------- Maps (two layers, crossfaded) ---------- */
 const ESRI="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
 const ZOOM_HANDLERS=["touchZoom","scrollWheelZoom","doubleClickZoom"];
-function setPinch(on){maps.forEach(m=>ZOOM_HANDLERS.forEach(h=>on?m[h].enable():m[h].disable()))}
+function setPinch(on){allMaps.forEach(m=>ZOOM_HANDLERS.forEach(h=>on?m[h].enable():m[h].disable()))}
 function makeMap(el){
   const m=L.map(el,{dragging:false,touchZoom:"center",scrollWheelZoom:"center",doubleClickZoom:"center",boxZoom:false,keyboard:false,zoomControl:false,zoomSnap:0.25,inertia:false,fadeAnimation:true});
   L.tileLayer(ESRI,{maxZoom:19,maxNativeZoom:19,detectRetina:true,attribution:"Imagery © Esri, Maxar, Earthstar Geographics"}).addTo(m);
@@ -565,6 +580,35 @@ function makeMap(el){
 }
 const layers=[$("layerA"),$("layerB")];
 const maps=layers.map(makeMap);
+/* 연습 모드 줌아웃 연출용: 정답 공개 화면(넓은 범위)을 문제를 푸는 동안 미리 불러 둔다 */
+const layerC=$("layerC"),mapC=makeMap(layerC),allMaps=[...maps,mapC];
+let viewMap=null,revealing=false;
+const revealZoom=city=>Math.max(4,city.zoom-4);
+function placeReveal(city){if(city)mapC.setView([city.lat,city.lng],revealZoom(city),{animate:false})}
+function clearInline(el){el.style.transition="none";el.style.transform="";el.style.opacity="";el.style.filter="";el.style.pointerEvents="";void el.offsetWidth;el.style.transition=""}
+function playRevealZoom(city){
+  const a=layers[active],mA=maps[active],z=revealZoom(city);
+  const c0=mapC.getCenter();
+  if(Math.abs(mapC.getZoom()-z)>.01||Math.abs(c0.lat-city.lat)>1e-6||Math.abs(c0.lng-city.lng)>1e-6)placeReveal(city);
+  const k=Math.pow(2,mA.getZoom()-z);
+  layerC.style.transition="none";a.style.transition="none";
+  layerC.classList.remove("off");
+  layerC.style.opacity="1";layerC.style.filter="none";layerC.style.transform="scale("+k+")";
+  a.style.transform="scale(1)";a.style.pointerEvents="none";
+  void layerC.offsetWidth;
+  const ease="cubic-bezier(.45,0,.2,1)";
+  layerC.style.transition="transform 1.6s "+ease;
+  a.style.transition="transform 1.6s "+ease+",opacity .5s ease 1.3s";
+  layerC.style.transform="scale(1)";
+  a.style.transform="scale("+(1/k)+")";a.style.opacity="0";
+  revealing=true;viewMap=mapC;
+}
+function endReveal(){
+  if(!revealing)return;
+  revealing=false;viewMap=null;
+  layerC.style.transition="";layerC.style.transform="";layerC.style.opacity="";layerC.style.filter="";
+  layerC.classList.add("off");
+}
 let active=0;
 function place(i,city){if(city)maps[i].setView([city.lat,city.lng],city.zoom,{animate:false})}
 
@@ -580,7 +624,7 @@ function layout(){
 }
 new ResizeObserver(layout).observe(app);
 if(stackedMQ.addEventListener)stackedMQ.addEventListener("change",layout);
-new ResizeObserver(()=>maps.forEach(m=>m.invalidateSize({animate:false}))).observe($("mapBox"));
+new ResizeObserver(()=>allMaps.forEach(m=>m.invalidateSize({animate:false}))).observe($("mapBox"));
 
 /* ---------- Settings ---------- */
 const ALL_REGIONS=Object.keys(REGION_NAME);
@@ -609,8 +653,10 @@ function startGame(kind,list){
   st={kind,queue:list,idx:0,correct:0,answered:0,hint:0,history:[],busy:false,done:false,hintsUsed:0,scope:kind==="review"?"복습":scopeLabel(settings.regions)};
   document.body.classList.toggle("practice",kind==="practice");setPinch(kind==="practice");
   $("history").innerHTML="";$("reveal").classList.remove("show");
+  endReveal();layers.forEach(l=>{l.classList.add("off");clearInline(l)});
   active=0;place(0,list[0]);place(1,list[1]);
   layers[0].classList.remove("off");layers[1].classList.add("off");
+  if(kind==="practice")placeReveal(list[0]);
   $("passBtn").textContent=kind==="practice"?"정답 보기":"Pass";
   renderMode();renderTop();renderHint();resetInput(true);updateScope();
 }
@@ -659,7 +705,7 @@ function answer(passed){
   const verdict=ok?(item.hinted?"정답 (힌트 사용)":"정답"):(passed?(st.kind==="practice"?"정답 보기":"패스"):"아쉬워요");
   $("reveal").innerHTML='<span class="verdict '+(ok?"ok":"bad")+'">'+verdict+'</span><div class="city">'+esc(city.en)+"<span>"+esc(city.ko)+'</span></div><div class="country">'+esc(city.cEn)+" · "+esc(city.cKo)+"</div>"+(st.kind==="practice"?'<div class="next">Enter를 누르면 다음 문제로 넘어가요</div>':"");
   $("reveal").classList.add("show");
-  if(st.kind==="practice")maps[active].flyTo([city.lat,city.lng],Math.max(4,city.zoom-4),{duration:1.6});
+  if(st.kind==="practice")playRevealZoom(city);
   else revealTimer=setTimeout(advance,ok?1500:2400);
 }
 function addHistory(it){
@@ -679,11 +725,18 @@ function advance(){
   $("reveal").classList.remove("show");
   if(st.kind==="practice"&&st.idx+2>=st.queue.length)st.queue=st.queue.concat(shuffle(poolFor(settings.regions).slice()));
   if(st.idx>=st.queue.length){finish();return}
-  const next=1-active;
+  const next=1-active,wasRevealing=revealing;
   place(next,st.queue[st.idx]);
-  layers[next].classList.remove("off");layers[active].classList.add("off");
+  clearInline(layers[next]);
+  layers[next].classList.remove("off");
+  if(wasRevealing){layers[active].classList.add("off");clearInline(layers[active]);endReveal()}
+  else layers[active].classList.add("off");
   const old=active;active=next;
-  setTimeout(()=>{if(st.queue[st.idx+1])place(old,st.queue[st.idx+1])},800);
+  setTimeout(()=>{
+    if(!st)return;
+    if(st.queue[st.idx+1])place(old,st.queue[st.idx+1]);
+    if(st.kind==="practice"&&!revealing)placeReveal(st.queue[st.idx]);
+  },800);
   renderTop();renderHint();resetInput(false);
 }
 function finish(){
@@ -879,8 +932,8 @@ $("answer").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&st&&st.busy&&document.activeElement!==$("answer")&&!document.querySelector(".scrim.open")){e.preventDefault();advance()}});
 $("passBtn").onclick=()=>answer(true);
 $("hintBtn").onclick=useHint;
-$("zIn").onclick=()=>maps[active].zoomIn(1);
-$("zOut").onclick=()=>maps[active].zoomOut(1);
+$("zIn").onclick=()=>(viewMap||maps[active]).zoomIn(1);
+$("zOut").onclick=()=>(viewMap||maps[active]).zoomOut(1);
 /* 버튼을 눌러도 입력창 포커스(키보드)가 유지되게 */
 ["enterBtn","passBtn","hintBtn","zIn","zOut"].forEach(id=>$(id).addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()}));
 $("tutBtn").onclick=()=>openM("tutScrim");
