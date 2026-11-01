@@ -18,6 +18,8 @@
 <meta name="author" content="samsungkorea">
 <meta name="copyright" content="© 2026 samsungkorea. All rights reserved.">
 <meta name="description" content="라벨 없는 위성 사진으로 도시를 맞혀 보세요. 전 세계 771개 도시 퀴즈.">
+<link rel="canonical" href="https://samsungkorea.github.io/satellite-quiz/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"ZoomOut Geography","alternateName":"ZoomOut Geo","url":"https://samsungkorea.github.io/satellite-quiz/","description":"라벨 없는 위성 사진을 보고 전 세계 도시를 맞히며 외우는 지리 퀴즈. 연습 모드, 복습, 즐겨찾기, HARD 모드 지원.","applicationCategory":"EducationalApplication","operatingSystem":"Any","inLanguage":"ko","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"}}</script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ZoomOut Geography">
 <meta property="og:title" content="ZoomOut Geography — 위성 사진 도시 퀴즈">
@@ -152,7 +154,11 @@ body.practice .zoomctl{display:flex}
 .enter{border:1.5px solid var(--ink);background:var(--surface);border-radius:6px;padding:6px 16px;font-weight:700;font-family:var(--display);font-size:18px;box-shadow:3px 3px 0 var(--ink);transition:transform .12s,box-shadow .12s}
 .enter:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
 
-footer{grid-area:foot;display:flex;align-items:center;justify-content:space-between;gap:12px}
+/* 범위 버튼이 항상 화면 정가운데 오도록 3칸 격자 */
+footer{grid-area:foot;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px}
+footer .left-actions{justify-self:start}
+footer .scope{justify-self:center}
+footer .right-actions{justify-self:end}
 .left-actions,.right-actions{display:flex;gap:clamp(10px,2vw,20px);align-items:center}
 .link{background:none;border:0;padding:6px 2px;font-family:var(--display);font-size:clamp(16px,1.8vw,20px);font-weight:500;white-space:nowrap}
 .link:hover{text-decoration:underline;text-underline-offset:4px}
@@ -176,7 +182,8 @@ footer{grid-area:foot;display:flex;align-items:center;justify-content:space-betw
   .title-row{gap:10px}
   .mode button{padding:2px 9px;font-size:13px}
   footer{flex-wrap:wrap;row-gap:0}
-  .scope{order:3;width:100%;justify-content:center}
+  footer{grid-template-columns:1fr auto;row-gap:0}
+  footer .scope{grid-column:1/-1;grid-row:2;justify-self:center}
 }
 
 /* ---------- Sheets & modals ---------- */
@@ -294,7 +301,7 @@ body.browsing #reveal{opacity:0}
 body{transition:background-color .6s ease,color .6s ease}
 .tick,.bar,.enter,.answer,.mode,.qnum,.sheet,.chip,.hard-btn{transition:background-color .5s ease,border-color .5s ease,color .5s ease,box-shadow .5s ease}
 .hard-btn{border:1.5px solid var(--ink);background:transparent;color:var(--ink);border-radius:999px;padding:3px 12px;font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.06em}
-body.hard{--bg:#0b1322;--surface:#111c30;--ink:#e6ebf3;--muted:#8d9ab0;--line:#22304a;--amber:#f2b632;--focus:#f2b632;--map-bg:#060b14;color-scheme:dark;
+body.hard{--ok:#3fc596;--ok-soft:#173a2e;--bad:#ff5a8c;--bad-soft:#41192a;--bg:#0b1322;--surface:#111c30;--ink:#e6ebf3;--muted:#8d9ab0;--line:#22304a;--amber:#f2b632;--focus:#f2b632;--map-bg:#060b14;color-scheme:dark;
   background-image:linear-gradient(rgba(242,182,50,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(242,182,50,.045) 1px,transparent 1px);background-size:44px 44px}
 body.hard .hard-btn{background:var(--amber);border-color:var(--amber);color:#0b1322;box-shadow:0 0 0 4px rgba(242,182,50,.18)}
 body.hard .tick{border-color:var(--amber)}
@@ -344,7 +351,7 @@ html.vt-circle::view-transition-new(root){z-index:2}
   body.kb .app{position:fixed;left:0;right:0;top:0;height:var(--vvh,100%);transform:translateY(var(--vvt,0px));padding:8px 12px;gap:8px;
     grid-template-rows:minmax(0,1fr) auto auto;grid-template-areas:"map" "panel" "foot"}
   body.kb header,body.kb .score,body.kb #history,body.kb .left-actions,body.kb .scope{display:none}
-  body.kb footer{justify-content:flex-end;padding:0;flex-wrap:nowrap}
+  body.kb footer{display:flex;justify-content:flex-end;padding:0;flex-wrap:nowrap}
   body.kb .right-actions{gap:18px}
   body.kb .link{font-size:16px;padding:4px 2px}
   body.kb .kb-badge{display:block}
@@ -1594,7 +1601,7 @@ document.querySelector(".mode").addEventListener("click",e=>{
 });
 
 function applyHard(){document.body.classList.toggle("hard",hardOn);$("hardBtn").setAttribute("aria-pressed",String(hardOn))}
-$("hardBtn").onclick=()=>{hardOn=!hardOn;store.set("mq-hard",hardOn);quietSwitch(()=>{applyHard();newGame()},$("hardBtn"));toast(hardOn?"HARD 모드: 소도시까지 나와요.":"HARD 모드를 껐어요.")};
+$("hardBtn").onclick=()=>{hardOn=!hardOn;store.set("mq-hard",hardOn);quietSwitch(()=>{applyHard();newGame()},$("hardBtn"));};
 $("hardBtn").addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()});
 applyHard();
 /* ---------- ZoomOut 제목: 돋보기 글자 + 누르면 줌아웃 ---------- */
