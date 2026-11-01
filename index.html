@@ -321,6 +321,32 @@ html.vt-circle::view-transition-new(root){z-index:2}
 /* 휴대폰·태블릿: 팝업 뒤 흐림 효과 대신 진한 반투명 배경 (화면 전체를 다시 그리는 부담 제거) */
 @media (pointer:coarse){.scrim{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(8,14,20,.62)}}
 .credits{font-size:12px;line-height:1.5}
+/* ---------- 핸드폰 ---------- */
+.kb-badge{display:none;position:absolute;top:10px;left:10px;z-index:6;background:rgba(10,18,24,.62);color:#fff;font-family:var(--display);font-weight:700;font-size:14px;padding:3px 10px;border-radius:999px;pointer-events:none;font-variant-numeric:tabular-nums}
+.history.full{flex-direction:column;max-height:none;min-height:0;mask-image:none;-webkit-mask-image:none}
+.history.full li:first-child{margin-top:0}
+@media (max-width:700px) and (max-aspect-ratio:1/1){
+  .panel{gap:10px}
+  .answer{order:1}
+  .hint-line{order:2}
+  .score{order:3}
+  #history{order:4;flex:none;height:auto;min-height:0;flex-direction:row;align-items:center;gap:14px;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:none;cursor:pointer;
+    mask-image:linear-gradient(to right,transparent 0,#000 28px);-webkit-mask-image:linear-gradient(to right,transparent 0,#000 28px);padding:2px 0}
+  #history::-webkit-scrollbar{display:none}
+  #history li{flex:none;padding:2px 0;font-size:15px;gap:6px;animation-name:slideInX}
+  #history li:first-child{margin-top:0;margin-left:auto}
+  #history .sub{display:none}
+  #history:empty::before{margin-top:0}
+  .score-num{font-size:20px}
+  .bar{height:9px}
+  /* 키보드 집중 모드: 지도 + 입력칸만 */
+  body.kb .app{position:fixed;left:0;right:0;top:0;height:var(--vvh,100%);transform:translateY(var(--vvt,0px));padding:8px 12px;gap:8px;
+    grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"map" "panel"}
+  body.kb header,body.kb footer,body.kb .score,body.kb #history{display:none}
+  body.kb .kb-badge{display:block}
+  body.kb .map-cell{padding:6px}
+}
+@keyframes slideInX{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
 #confetti{position:fixed;inset:0;width:100%;height:100%;z-index:6000;pointer-events:none;display:none}
 #confetti.on{display:block}
 
@@ -347,6 +373,7 @@ html.vt-circle::view-transition-new(root){z-index:2}
     <div class="map-wrap">
       <span class="tick tl"></span><span class="tick tr"></span><span class="tick bl"></span><span class="tick br"></span>
       <div class="map-box" id="mapBox">
+        <div class="kb-badge" id="kbBadge" aria-hidden="true"></div>
         <div class="map-layer" id="layerA"></div>
         <div class="map-layer off" id="layerB"></div>
         <div class="map-layer off" id="layerC"></div>
@@ -460,6 +487,10 @@ html.vt-circle::view-transition-new(root){z-index:2}
           <button data-theme-opt="system">시스템</button><button data-theme-opt="light">라이트</button><button data-theme-opt="dark">다크</button>
         </div>
       </div>
+      <div class="group" id="vibeGroup" hidden>
+        <div class="group-head"><h3>진동</h3><span class="muted">맞히거나 틀릴 때 짧게 울려요</span></div>
+        <div class="seg" id="vibeSeg"><button data-vibe="on">켜기</button><button data-vibe="off">끄기</button></div>
+      </div>
       <div class="group">
         <div class="group-head"><h3>계정</h3><button class="toggle-all" id="setSwitch">로그인</button></div>
         <p class="muted" id="setAccount" style="margin:0"></p>
@@ -517,6 +548,14 @@ html.vt-circle::view-transition-new(root){z-index:2}
     <div class="list-search"><input class="login-input list-input" id="listSearch" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="도시·나라 검색" aria-label="도시·나라 검색"></div>
     <div class="sheet-body" id="listBody"></div>
     <div class="sheet-foot"><span class="muted" id="listNote"></span><button class="primary" data-close="listScrim">닫기</button></div>
+  </div>
+</div>
+
+<!-- 기록 전체 (핸드폰) -->
+<div class="scrim" id="histScrim" role="dialog" aria-modal="true" aria-labelledby="histTitle">
+  <div class="sheet small">
+    <div class="sheet-head"><h2 id="histTitle">이번 세트 기록</h2><button class="x" data-close="histScrim" aria-label="닫기">×</button></div>
+    <div class="sheet-body"><ol class="history full" id="histFull"></ol></div>
   </div>
 </div>
 
@@ -957,6 +996,7 @@ function renderTop(){
   $("qnum").innerHTML="#"+n+"<small>"+small+"</small>";
   $("scoreNum").textContent=st.correct+" / "+st.answered;
   $("barFill").style.width=(st.answered?st.correct/st.answered*100:0)+"%";
+  $("kbBadge").textContent="#"+n+(st.kind==="practice"?"":"/"+st.queue.length)+" · "+st.correct+"/"+st.answered;
 }
 function renderHint(){
   const c=st.queue[st.idx],box=$("hintLine");box.innerHTML="";
@@ -991,6 +1031,7 @@ function answer(passed){
   $("passBtn").disabled=true;$("hintBtn").disabled=true;
   addHistory(item);renderTop();
   st.revealItem=item;renderReveal();
+  buzz(ok?28:[45,60,45]);
   $("reveal").classList.add("show");
   playRevealZoom(city);
   /* 퀴즈는 줌아웃(1.6초)을 다 본 뒤 자동으로 넘어감. 기다리기 싫으면 Enter로 바로 다음 */
@@ -1059,7 +1100,7 @@ function showResult(){
   let html;
   if(!missed.length){
     html='<div class="celebrate'+(st.hard?" hard-cele":"")+'"><div class="trophy">'+(st.hard?"🛰️":"🏆")+'</div><div class="result-big">'+total+" / "+total+'</div><p class="cheer">'+(st.hard?"HARD 세트를 전부 맞혔어요! 정찰 임무 완수.":st.hintsUsed?"전부 맞혔어요! 힌트는 "+st.hintsUsed+"번 썼어요.":"힌트 없이 전부 맞혔어요. 완벽해요!")+"</p></div>";
-    setTimeout(confetti,250);
+    setTimeout(confetti,250);buzz([30,60,30,60,90]);
   }else{
     const pct=Math.round(st.correct/total*100);
     html='<div class="result-big">'+st.correct+" / "+total+'</div><div class="muted">정답률 '+pct+"% · 힌트 사용 "+st.hintsUsed+"번</div>";
@@ -1519,6 +1560,41 @@ applyHard();
     a.onfinish=a.oncancel=()=>{busy=false};
   });
 })();
+/* ---------- 핸드폰: 기록 한 줄 + 전체 보기 ---------- */
+const phoneMQ=matchMedia("(max-width:700px) and (max-aspect-ratio:1/1)");
+$("history").addEventListener("click",()=>{if(!phoneMQ.matches||!$("history").children.length)return;$("histFull").innerHTML=$("history").innerHTML;openM("histScrim")});
+new MutationObserver(()=>{if(phoneMQ.matches){const h=$("history");h.scrollLeft=h.scrollWidth}}).observe($("history"),{childList:true});
+
+/* ---------- 키보드 집중 모드 ---------- */
+(function(){
+  const vv=window.visualViewport;if(!vv)return;
+  let maxH=vv.height;
+  function upd(){
+    maxH=Math.max(maxH,vv.height);
+    const open=phoneMQ.matches&&document.activeElement===$("answer")&&vv.height<maxH*0.8;
+    const r=document.documentElement;
+    if(open){r.style.setProperty("--vvh",vv.height+"px");r.style.setProperty("--vvt",vv.offsetTop+"px")}
+    if(open!==document.body.classList.contains("kb")){
+      document.body.classList.toggle("kb",open);
+      if(!open){r.style.removeProperty("--vvh");r.style.removeProperty("--vvt")}
+      requestAnimationFrame(()=>{allMaps.forEach(m=>m.invalidateSize({animate:false}));if(open)window.scrollTo(0,0)});
+    }
+  }
+  vv.addEventListener("resize",upd);vv.addEventListener("scroll",upd);
+  $("answer").addEventListener("focus",()=>setTimeout(upd,300));
+  $("answer").addEventListener("blur",()=>setTimeout(upd,100));
+  window.addEventListener("orientationchange",()=>{maxH=0;setTimeout(()=>{maxH=vv.height;upd()},400)});
+})();
+
+/* ---------- 진동 (안드로이드) ---------- */
+const canVibe=typeof navigator.vibrate==="function";
+const vibeOn=()=>canVibe&&store.get("mq-vibe",true)!==false;
+function buzz(p){if(vibeOn())try{navigator.vibrate(p)}catch(e){}}
+if(canVibe)$("vibeGroup").hidden=false;
+function renderVibe(){document.querySelectorAll("#vibeSeg button").forEach(b=>b.setAttribute("aria-pressed",String((b.dataset.vibe==="on")===vibeOn())))}
+$("vibeSeg").addEventListener("click",e=>{const b=e.target.closest("[data-vibe]");if(!b)return;store.set("mq-vibe",b.dataset.vibe==="on");renderVibe();if(b.dataset.vibe==="on")buzz(30)});
+renderVibe();
+
 updateUser();
 newGame();
 snapPill();
