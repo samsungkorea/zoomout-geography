@@ -966,7 +966,10 @@ function updateScope(){$("scopeTxt").textContent=scopeLabel(settings.regions)+(s
 
 /* ---------- Game ---------- */
 let st=null,revealTimer=null,lastSet=null,lastMissed=[];
-const fine=()=>matchMedia("(pointer:fine)").matches;
+/* 마우스로 쓰는 중일 때만 입력칸에 자동 포커스 (터치 기기에서 키보드가 멋대로 올라오지 않게) */
+let lastPointer="mouse";
+document.addEventListener("pointerdown",e=>{lastPointer=e.pointerType||"mouse"},true);
+const fine=()=>lastPointer==="mouse"&&matchMedia("(hover:hover) and (pointer:fine)").matches&&!matchMedia("(pointer:coarse)").matches;
 
 function startGame(kind,list,opt){
   exitBrowse();
@@ -1581,8 +1584,7 @@ new MutationObserver(()=>{if(phoneMQ.matches){const h=$("history");h.scrollLeft=
       if(!open){r.style.removeProperty("--vvh");r.style.removeProperty("--vvt")}
       requestAnimationFrame(()=>{allMaps.forEach(m=>m.invalidateSize({animate:false}));if(open)window.scrollTo(0,0)});
     };
-    /* 화면이 바뀌는 순간을 한 번에 겹쳐 페이드 (키보드 올라오는 동안 덜컥거림 완화) */
-    if(document.startViewTransition&&!matchMedia("(prefers-reduced-motion: reduce)").matches){try{document.startViewTransition(go);return}catch(e){}}
+    /* 키보드가 움직이는 동안 화면 사진을 찍으면 일부 브라우저에서 하얗게 깜빡여서, 여기선 페이드 없이 바로 바꿈 */
     go();
   }
   function upd(){
