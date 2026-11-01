@@ -17,11 +17,11 @@
 <title>ZoomOut Geography — 위성 사진 도시 퀴즈</title>
 <meta name="author" content="samsungkorea">
 <meta name="copyright" content="© 2026 samsungkorea. All rights reserved.">
-<meta name="description" content="라벨 없는 위성 사진으로 도시를 맞혀 보세요. 전 세계 321개 도시 퀴즈.">
+<meta name="description" content="라벨 없는 위성 사진으로 도시를 맞혀 보세요. 전 세계 771개 도시 퀴즈.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ZoomOut Geography">
 <meta property="og:title" content="ZoomOut Geography — 위성 사진 도시 퀴즈">
-<meta property="og:description" content="라벨 없는 위성 사진으로 도시를 맞혀 보세요. 전 세계 321개 도시 퀴즈.">
+<meta property="og:description" content="라벨 없는 위성 사진으로 도시를 맞혀 보세요. 전 세계 771개 도시 퀴즈.">
 <meta property="og:url" content="https://samsungkorea.github.io/satellite-quiz/">
 <meta property="og:image" content="https://samsungkorea.github.io/satellite-quiz/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -508,7 +508,7 @@ html.vt-circle::view-transition-new(root){z-index:2}
           <li>어느 도시인지 영어나 한글로 입력하고 Enter를 누르세요. 악센트와 한두 글자 오타, LA·NYC 같은 약칭도 인정해요.</li>
           <li>막히면 Hint를 누르세요. 첫 번째는 나라, 두 번째는 첫 글자를 알려줘요.</li>
           <li>Practice 모드는 문제 수 제한이 없고, 두 손가락으로 지도를 벌리거나 오므려 확대·축소할 수 있어요. List를 누르면 범위 안의 도시 목록이 나오고, 도시를 누르면 그 위성 사진을 둘러볼 수 있어요.</li>
-          <li>제목 옆 HARD를 켜면 소도시 308곳이 더해져서, 지금 도시와 함께 섞여 나와요.</li>
+          <li>제목 옆 HARD를 켜면 소도시 402곳이 더해져서, 지금 도시와 함께 섞여 나와요.</li>
           <li>한 세트가 끝나면 틀린 도시만 골라 복습할 수 있어요. 로그인하면 Records에 결과가 쌓여요.</li>
           <li>세트 결과 화면이나 Practice 정답 화면에서 ☆를 눌러 즐겨찾기에 담고 메모를 남길 수 있어요. Records에서 즐겨찾기만 복습하거나, 출제 범위에서 "즐겨찾기만"을 켤 수 있어요. 퀴즈 중에는 즐겨찾기 표시가 나오지 않아요.</li>
         </ol>
@@ -600,7 +600,7 @@ const CONTINENTS=[
  {id:"af",name:"아프리카",regions:[["naf","북아프리카"],["waf","서아프리카"],["eaf","동아프리카"],["saf","중·남부 아프리카"]]},
  {id:"na",name:"북아메리카",regions:[["nam","미국·캐나다"],["cam","중미·카리브"]]},
  {id:"sa",name:"남아메리카",regions:[["sam","남아메리카"]]},
- {id:"oc",name:"오세아니아",regions:[["oc","오세아니아"]]}
+ {id:"oc",name:"오세아니아",regions:[["anz","호주·뉴질랜드"],["pac","태평양 섬나라"]]}
 ];
 const REGION_NAME={};CONTINENTS.forEach(c=>c.regions.forEach(([id,n])=>REGION_NAME[id]=n));
 
@@ -717,6 +717,39 @@ const HARD_RAW=[
 ["Rotorua","로토루아","NZ",-38.1368,176.2497,13],["Dunedin","더니든","NZ",-45.8788,170.5028,13],["Nelson","넬슨","NZ",-41.2706,173.2840,13],["Alice Springs","앨리스스프링스","AU",-23.6980,133.8807,13],["Broome","브룸","AU",-17.9614,122.2359,13],["Gold Coast","골드코스트","AU",-28.0167,153.4000],["Byron Bay","바이런베이","AU",-28.6474,153.6020,14],["Launceston","론서스턴","AU",-41.4332,147.1441,13],["Nadi","난디","FJ",-17.7765,177.4356,13],["Apia","아피아","WS",-13.8333,-171.7667,14],["Nuku'alofa","누쿠알로파","TO",-21.1394,-175.2049,14,"nukualofa"],["Port Vila","포트빌라","VU",-17.7334,168.3273,14],["Honiara","호니아라","SB",-9.4456,159.9729,14],["Hagåtña","하갓냐","GU",13.4757,144.7489,14,"hagatna|guam|괌"]
 ];
 HARD_RAW.forEach(r=>{const c=C[r[2]];CITIES.push({en:r[0],ko:r[1],lat:r[3],lng:r[4],zoom:r[5]||12,aliases:(r[6]||"").split("|").filter(Boolean),region:r[7]||c[2],cEn:c[0],cKo:c[1],hard:true})});
+/* ---------- 추가 도시 (v2.4) ---------- */
+Object.assign(C,{
+GI:["Gibraltar (UK)","지브롤터 (영국)","se"],CM:["Cameroon","카메룬","saf"],NE:["Niger","니제르","waf"],TD:["Chad","차드","saf"],GN:["Guinea","기니","waf"],LR:["Liberia","라이베리아","waf"],GA:["Gabon","가봉","saf"],MW:["Malawi","말라위","saf"],
+MH:["Marshall Islands","마셜 제도","pac"],KI:["Kiribati","키리바시","pac"],TV:["Tuvalu","투발루","pac"],PW:["Palau","팔라우","pac"],MP:["Northern Mariana Islands (US)","북마리아나 제도 (미국)","pac"],AS:["American Samoa (US)","아메리칸사모아 (미국)","pac"],CK:["Cook Islands (NZ)","쿡 제도 (뉴질랜드)","pac"]
+});
+const MORE_RAW=[
+["Malmö","말뫼","SE",55.6050,13.0038,0,"malmo|말뫼"],["Düsseldorf","뒤셀도르프","DE",51.2277,6.7735,0,"dusseldorf|duesseldorf"],["Dortmund","도르트문트","DE",51.5136,7.4653],["Leeds","리즈","GB",53.8008,-1.5491],["Birmingham","버밍엄","GB",52.4862,-1.8904,0,"버밍햄"],["Bristol","브리스톨","GB",51.4545,-2.5879,13],["Newcastle upon Tyne","뉴캐슬어폰타인","GB",54.9783,-1.6178,13,"newcastle|뉴캐슬"],["Glasgow","글래스고","GB",55.8642,-4.2518,0,"글라스고"],["Nantes","낭트","FR",47.2184,-1.5536],["Montpellier","몽펠리에","FR",43.6108,3.8767,13],["Zaragoza","사라고사","ES",41.6488,-0.8891,0,"saragossa"],["Bremen","브레멘","DE",53.0793,8.8017],["Hannover","하노버","DE",52.3759,9.7320,0,"hanover"],
+["Baltimore","볼티모어","US",39.2904,-76.6122],["Cleveland","클리블랜드","US",41.4993,-81.6944],["St. Louis","세인트루이스","US",38.6270,-90.1994,0,"saint louis|st louis"],["Dallas","댈러스","US",32.7767,-96.7970,0,"달라스"],["San Antonio","샌안토니오","US",29.4241,-98.4936],["Tampa","탬파","US",27.9506,-82.4572,0,"탐파"],["Monterrey","몬테레이","MX",25.6866,-100.3161],
+["Daegu","대구","KR",35.8714,128.6014],["Incheon","인천","KR",37.4563,126.7052],["Nagoya","나고야","JP",35.1815,136.9066],["Yokohama","요코하마","JP",35.4437,139.6380],["Guangzhou","광저우","CN",23.1291,113.2644,0,"canton"],["Chengdu","청두","CN",30.5728,104.0668,0,"성도"],["Wuhan","우한","CN",30.5928,114.3055,0,"무한"],["Nanjing","난징","CN",32.0603,118.7969,0,"nanking|남경"],["Tianjin","톈진","CN",39.3434,117.3616,0,"천진|텐진"],
+["Surabaya","수라바야","ID",-7.2575,112.7521],["Bandung","반둥","ID",-6.9175,107.6191],["Chennai","첸나이","IN",13.0827,80.2707,0,"madras|마드라스"],["Hyderabad","하이데라바드","IN",17.3850,78.4867],
+["Stuttgart","슈투트가르트","DE",48.7758,9.1829],["Leipzig","라이프치히","DE",51.3397,12.3731],["Nuremberg","뉘른베르크","DE",49.4521,11.0767,13,"nürnberg|nurnberg|nuernberg"],["Antwerp","안트베르펜","BE",51.2194,4.4025,13,"antwerpen|anvers|앤트워프"],["The Hague","헤이그","NL",52.0705,4.3007,0,"den haag|hague|'s-gravenhage"],["Lille","릴","FR",50.6292,3.0573],["Novosibirsk","노보시비르스크","RU",55.0084,82.9357],
+["Pretoria","프리토리아","ZA",-25.7479,28.2293,0,"tshwane"],["Orlando","올랜도","US",28.5383,-81.3792],["Sacramento","새크라멘토","US",38.5816,-121.4944],["Tijuana","티후아나","MX",32.5149,-117.0382],["Porto Alegre","포르투알레그리","BR",-30.0346,-51.2177,0,"포르토알레그레"],["Guayaquil","과야킬","EC",-2.1709,-79.9224],
+["Newcastle","뉴캐슬","AU",-32.9283,151.7817,13,"newcastle nsw"],["Geelong","질롱","AU",-38.1499,144.3617,13]
+];
+const MORE_HARD=[
+["Longyearbyen","롱위에아르비엔","NO",78.2232,15.6267,14,"svalbard|스발바르|롱이어비엔"],["Bodø","보되","NO",67.2804,14.4049,13,"bodo"],["Stavanger","스타방에르","NO",58.9700,5.7331,13,"스타방거"],["Helsingborg","헬싱보리","SE",56.0465,12.6945,13,"헬싱보그"],
+["Essen","에센","DE",51.4556,7.0116],["Southampton","사우샘프턴","GB",50.9097,-1.4044,13,"사우스햄튼"],["Bournemouth","본머스","GB",50.7192,-1.8808,13],["Clermont-Ferrand","클레르몽페랑","FR",45.7772,3.0870,13,"clermont"],
+["Vigo","비고","ES",42.2406,-8.7207,13],["Valladolid","바야돌리드","ES",41.6523,-4.7245,13],["Gibraltar","지브롤터","GI",36.1408,-5.3536,14],["Portimão","포르티망","PT",37.1386,-8.5378,14,"portimao"],
+["New Haven","뉴헤이븐","US",41.3083,-72.9279,13],["Jersey City","저지시티","US",40.7178,-74.0431,13],["Buffalo","버팔로","US",42.8864,-78.8784,0,"버펄로"],["Erie","이리","US",42.1292,-80.0851,13],["Columbus","콜럼버스","US",39.9612,-82.9988],["Louisville","루이빌","US",38.2527,-85.7585],["Cincinnati","신시내티","US",39.1031,-84.5120],["Charlotte","샬럿","US",35.2271,-80.8431,0,"살럿|샬롯"],["Kansas City","캔자스시티","US",39.0997,-94.5786,0,"캔사스시티"],["Fort Worth","포트워스","US",32.7555,-97.3308],["Jacksonville","잭슨빌","US",30.3322,-81.6557],["Cape Coral","케이프코럴","US",26.5629,-81.9495,13],["Eugene","유진","US",44.0521,-123.0868,13],["Albuquerque","앨버커키","US",35.0844,-106.6504,0,"알버커키"],["Memphis","멤피스","US",35.1495,-90.0490],["Madison","매디슨","US",43.0731,-89.4012,13],["Colorado Springs","콜로라도스프링스","US",38.8339,-104.8214],
+["Daejeon","대전","KR",36.3504,127.3845],["Gwangju","광주","KR",35.1595,126.8526],["Ulsan","울산","KR",35.5384,129.3114,13],["Kunming","쿤밍","CN",25.0389,102.7183,0,"곤명"],["Dalian","다롄","CN",38.9140,121.6147,0,"대련"],["Shenyang","선양","CN",41.8057,123.4315,0,"mukden|심양"],["Taichung","타이중","TW",24.1477,120.6736],
+["Nha Trang","냐짱","VN",12.2388,109.1967,13,"나트랑"],["Haiphong","하이퐁","VN",20.8449,106.6881,0,"hai phong"],["Johor Bahru","조호르바루","MY",1.4927,103.7414,0,"jb|조호바루"],["Pattaya","파타야","TH",12.9236,100.8825,13],["Medan","메단","ID",3.5952,98.6722],
+["Pune","푸네","IN",18.5204,73.8567,0,"poona"],["Ahmedabad","아마다바드","IN",23.0225,72.5714,0,"아메다바드"],["Lucknow","러크나우","IN",26.8467,80.9462],
+["Bursa","부르사","TR",40.1885,29.0610],["Gaziantep","가지안테프","TR",37.0662,37.3833,0,"antep"],["Basra","바스라","IQ",30.5085,47.7804,0,"basrah"],["Dammam","담맘","SA",26.4207,50.0888],
+["Trondheim","트론헤임","NO",63.4305,10.3951,13],["Tampere","탐페레","FI",61.4978,23.7610,13],["Aberdeen","애버딘","GB",57.1497,-2.0943,13],["Alicante","알리칸테","ES",38.3452,-0.4810,13,"alacant"],["Trieste","트리에스테","IT",45.6495,13.7768,13],["Catania","카타니아","IT",37.5079,15.0830,13],["Łódź","우치","PL",51.7592,19.4560,0,"lodz"],["Timișoara","티미쇼아라","RO",45.7489,21.2087,13,"timisoara"],["Varna","바르나","BG",43.2141,27.9147,13],["Nizhny Novgorod","니즈니노브고로드","RU",56.2965,43.9361],["Volgograd","볼고그라드","RU",48.7080,44.5133,0,"stalingrad|스탈린그라드"],
+["Agadir","아가디르","MA",30.4278,-9.5981,13],["Oran","오랑","DZ",35.6971,-0.6308,0,"wahran"],["Ibadan","이바단","NG",7.3775,3.9470],["Douala","두알라","CM",4.0511,9.7679],["Niamey","니아메","NE",13.5116,2.1254],["N'Djamena","은자메나","TD",12.1348,15.0557,0,"ndjamena"],["Conakry","코나크리","GN",9.6412,-13.5784],["Monrovia","몬로비아","LR",6.3156,-10.8074],["Libreville","리브르빌","GA",0.4162,9.4673],["Lilongwe","릴롱궤","MW",-13.9626,33.7741],
+["Oklahoma City","오클라호마시티","US",35.4676,-97.5164,0,"okc"],["Tucson","투손","US",32.2226,-110.9747],["El Paso","엘패소","US",31.7619,-106.4850],["Omaha","오마하","US",41.2565,-95.9345],["Fairbanks","페어뱅크스","US",64.8378,-147.7164,13],["Victoria","빅토리아","CA",48.4284,-123.3656,13],["Querétaro","케레타로","MX",20.5888,-100.3899,0,"queretaro"],["Acapulco","아카풀코","MX",16.8531,-99.8237,13],
+["Curitiba","쿠리치바","BR",-25.4284,-49.2733],["Belo Horizonte","벨루오리존치","BR",-19.9167,-43.9345,0,"bh|벨로오리존테"],["Fortaleza","포르탈레자","BR",-3.7319,-38.5267],["Rosario","로사리오","AR",-32.9442,-60.6505],["Barranquilla","바랑키야","CO",10.9685,-74.7813],["Santa Cruz de la Sierra","산타크루스","BO",-17.8146,-63.1561,0,"santa cruz"],["Antofagasta","안토파가스타","CL",-23.6509,-70.3975,13],["Mar del Plata","마르델플라타","AR",-38.0055,-57.5426,13],
+["Townsville","타운즈빌","AU",-19.2590,146.8169,13],["Tauranga","타우랑가","NZ",-37.6878,176.1651,13],["Majuro","마주로","MH",7.0897,171.3803,14],["Tarawa","타라와","KI",1.3290,172.9790,14,"south tarawa|bairiki"],["Funafuti","푸나푸티","TV",-8.5211,179.1983,14],["Koror","코로르","PW",7.3419,134.4792,14],["Saipan","사이판","MP",15.1850,145.7467,13],["Pago Pago","파고파고","AS",-14.2756,-170.7020,14],["Avarua","아바루아","CK",-21.2075,-159.7750,14]
+];
+MORE_RAW.forEach(r=>{const c=C[r[2]];CITIES.push({en:r[0],ko:r[1],lat:r[3],lng:r[4],zoom:r[5]||12,aliases:(r[6]||"").split("|").filter(Boolean),region:r[7]||c[2],cEn:c[0],cKo:c[1]})});
+MORE_HARD.forEach(r=>{const c=C[r[2]];CITIES.push({en:r[0],ko:r[1],lat:r[3],lng:r[4],zoom:r[5]||12,aliases:(r[6]||"").split("|").filter(Boolean),region:r[7]||c[2],cEn:c[0],cKo:c[1],hard:true})});
+/* 오세아니아를 호주·뉴질랜드 / 태평양 섬나라로 나눔 */
+CITIES.forEach(c=>{if(c.region==="oc")c.region=(c.cEn==="Australia"||c.cEn==="New Zealand")?"anz":"pac"});
 
 /* ---------- Answer matching ---------- */
 const SPECIAL={"ł":"l","ø":"o","æ":"ae","œ":"oe","đ":"d","ð":"d","ı":"i","ß":"ss","þ":"th","’":"'"};
@@ -924,7 +957,7 @@ new ResizeObserver(()=>allMaps.forEach(m=>m.invalidateSize({animate:false}))).ob
 /* ---------- Settings ---------- */
 const ALL_REGIONS=Object.keys(REGION_NAME);
 let settings={regions:new Set(ALL_REGIONS),count:20,favOnly:false};
-(()=>{const s=store.get("mq-settings",null);if(s&&Array.isArray(s.regions)){settings.regions=new Set(s.regions.filter(r=>REGION_NAME[r]));settings.count=[0,10,20,50].includes(s.count)?s.count:20;settings.favOnly=!!s.favOnly;if(!settings.regions.size)settings.regions=new Set(ALL_REGIONS)}})();
+(()=>{const s=store.get("mq-settings",null);if(s&&Array.isArray(s.regions)){settings.regions=new Set((s.regions.includes("oc")?s.regions.concat(["anz","pac"]):s.regions).filter(r=>REGION_NAME[r]));settings.count=[0,10,20,50].includes(s.count)?s.count:20;settings.favOnly=!!s.favOnly;if(!settings.regions.size)settings.regions=new Set(ALL_REGIONS)}})();
 let mode=store.get("mq-mode","quiz")==="practice"?"practice":"quiz";
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
