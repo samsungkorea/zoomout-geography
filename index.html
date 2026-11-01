@@ -13,7 +13,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <title>ZoomOut Geography — 위성 사진 도시 퀴즈</title>
 <meta name="author" content="samsungkorea">
 <meta name="copyright" content="© 2026 samsungkorea. All rights reserved.">
@@ -335,14 +335,18 @@ html.vt-circle::view-transition-new(root){z-index:2}
   #history::-webkit-scrollbar{display:none}
   #history li{flex:none;padding:2px 0;font-size:15px;gap:6px;animation-name:slideInX}
   #history li:first-child{margin-top:0;margin-left:auto}
-  #history .sub{display:none}
+  #history li.is-ok .sub{display:none}
+  #history li.is-ng .sub{font-size:14px}
   #history:empty::before{margin-top:0}
   .score-num{font-size:20px}
   .bar{height:9px}
   /* 키보드 집중 모드: 지도 + 입력칸만 */
   body.kb .app{position:fixed;left:0;right:0;top:0;height:var(--vvh,100%);transform:translateY(var(--vvt,0px));padding:8px 12px;gap:8px;
-    grid-template-rows:minmax(0,1fr) auto;grid-template-areas:"map" "panel"}
-  body.kb header,body.kb footer,body.kb .score,body.kb #history{display:none}
+    grid-template-rows:minmax(0,1fr) auto auto;grid-template-areas:"map" "panel" "foot"}
+  body.kb header,body.kb .score,body.kb #history,body.kb .left-actions,body.kb .scope{display:none}
+  body.kb footer{justify-content:flex-end;padding:0;flex-wrap:nowrap}
+  body.kb .right-actions{gap:18px}
+  body.kb .link{font-size:16px;padding:4px 2px}
   body.kb .kb-badge{display:block}
   body.kb .map-cell{padding:6px}
 }
@@ -1050,7 +1054,7 @@ function renderReveal(){
   $("reveal").innerHTML=h;
 }
 function addHistory(it){
-  const li=document.createElement("li");
+  const li=document.createElement("li");li.className=it.ok?"is-ok":"is-ng";
   const mark='<span class="mark '+(it.ok?"ok":"bad")+'">'+(it.ok?"✓":"✕")+"</span>";
   const hint=it.hinted?'<span class="hinted" title="힌트 사용">💡</span>':"";
   if(it.ok)li.innerHTML='<span class="n">#'+it.n+'</span><span class="g">'+esc(it.city.en)+"</span>"+mark+hint+'<span class="sub">'+esc(it.city.ko)+"</span>";
@@ -1494,7 +1498,7 @@ function renderList(){
   }));
   $("listBody").innerHTML=h||'<p class="muted">찾는 도시가 없어요.</p>';
 }
-function openList(){$("listSearch").value=listQuery;renderList();openM("listScrim")}
+function openList(){if(phoneMQ.matches)$("answer").blur();$("listSearch").value=listQuery;renderList();openM("listScrim")}
 $("listBtn").onclick=openList;
 $("listSearch").addEventListener("input",e=>{listQuery=e.target.value;renderList()});
 $("listBody").addEventListener("click",e=>{
@@ -1504,7 +1508,7 @@ $("listBody").addEventListener("click",e=>{
 });
 ["listBtn"].forEach(id=>$(id).addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()}));
 /* 버튼을 눌러도 입력창 포커스(키보드)가 유지되게 */
-["enterBtn","passBtn","hintBtn","zIn","zOut"].forEach(id=>$(id).addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()}));
+["enterBtn","passBtn","hintBtn","zIn","zOut"].forEach(id=>{const keep=e=>{if(document.activeElement===$("answer"))e.preventDefault()};$(id).addEventListener("mousedown",keep);$(id).addEventListener("pointerdown",keep)});
 $("tutBtn").onclick=openSettings;
 $("themeSeg").addEventListener("click",e=>{const b=e.target.closest("[data-theme-opt]");if(!b)return;setTheme(b.dataset.themeOpt)});
 $("setSwitch").onclick=()=>{closeM("tutScrim");if(me)logout();else setTimeout(openLogin,200)};
@@ -1568,22 +1572,33 @@ new MutationObserver(()=>{if(phoneMQ.matches){const h=$("history");h.scrollLeft=
 /* ---------- 키보드 집중 모드 ---------- */
 (function(){
   const vv=window.visualViewport;if(!vv)return;
-  let maxH=vv.height;
-  function upd(){
-    maxH=Math.max(maxH,vv.height);
-    const open=phoneMQ.matches&&document.activeElement===$("answer")&&vv.height<maxH*0.8;
-    const r=document.documentElement;
-    if(open){r.style.setProperty("--vvh",vv.height+"px");r.style.setProperty("--vvt",vv.offsetTop+"px")}
-    if(open!==document.body.classList.contains("kb")){
+  const r=document.documentElement;
+  let maxH=vv.height,entering=false,raf=0;
+  function setKb(open){
+    if(open===document.body.classList.contains("kb"))return;
+    const go=()=>{
       document.body.classList.toggle("kb",open);
       if(!open){r.style.removeProperty("--vvh");r.style.removeProperty("--vvt")}
       requestAnimationFrame(()=>{allMaps.forEach(m=>m.invalidateSize({animate:false}));if(open)window.scrollTo(0,0)});
-    }
+    };
+    /* 화면이 바뀌는 순간을 한 번에 겹쳐 페이드 (키보드 올라오는 동안 덜컥거림 완화) */
+    if(document.startViewTransition&&!matchMedia("(prefers-reduced-motion: reduce)").matches){try{document.startViewTransition(go);return}catch(e){}}
+    go();
   }
-  vv.addEventListener("resize",upd);vv.addEventListener("scroll",upd);
-  $("answer").addEventListener("focus",()=>setTimeout(upd,300));
-  $("answer").addEventListener("blur",()=>setTimeout(upd,100));
-  window.addEventListener("orientationchange",()=>{maxH=0;setTimeout(()=>{maxH=vv.height;upd()},400)});
+  function upd(){
+    raf=0;
+    maxH=Math.max(maxH,vv.height);
+    const focused=phoneMQ.matches&&document.activeElement===$("answer");
+    const kbUp=vv.height<maxH*0.8;
+    if(focused&&kbUp){r.style.setProperty("--vvh",vv.height+"px");r.style.setProperty("--vvt",vv.offsetTop+"px")}
+    setKb(focused&&(kbUp||entering));
+  }
+  const sched=()=>{if(!raf)raf=requestAnimationFrame(upd)};
+  vv.addEventListener("resize",sched);vv.addEventListener("scroll",sched);
+  /* 키보드가 올라오기 시작할 때 바로 집중 모드로 들어가고, 크기는 키보드를 따라 맞춰감 */
+  $("answer").addEventListener("focus",()=>{entering=true;sched();setTimeout(()=>{entering=false;sched()},900)});
+  $("answer").addEventListener("blur",()=>setTimeout(sched,80));
+  window.addEventListener("orientationchange",()=>{maxH=0;setTimeout(()=>{maxH=vv.height;sched()},400)});
 })();
 
 /* ---------- 진동 (안드로이드) ---------- */
