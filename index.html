@@ -1,9 +1,22 @@
 <!DOCTYPE html>
+<!--
+  Map Quiz in Satellite
+  © 2026 samsungkorea. All rights reserved.
+  이 사이트의 코드와 디자인은 저작권으로 보호됩니다. 허락 없이 복제·배포·수정하여 공개할 수 없습니다.
+  아래 외부 자료는 위 저작권에 포함되지 않으며, 각 권리자의 조건을 따릅니다.
+  - 위성 사진: Powered by Esri. Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community
+  - 지도 표시: Leaflet (BSD-2-Clause)
+  - 글꼴: Pretendard, Bricolage Grotesque (SIL Open Font License)
+  - 로그인·저장: Firebase JS SDK (Apache License 2.0)
+  - 도시 이름과 좌표는 공개된 지리 정보입니다.
+-->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Map Quiz in Satellite</title>
+<meta name="author" content="samsungkorea">
+<meta name="copyright" content="© 2026 samsungkorea. All rights reserved.">
 <meta name="description" content="라벨 없는 위성 사진으로 도시를 맞혀 보세요. 전 세계 321개 도시 퀴즈.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Map Quiz in Satellite">
@@ -303,6 +316,7 @@ html.vt-circle::view-transition-old(root),html.vt-circle::view-transition-new(ro
 html.vt-circle::view-transition-new(root){z-index:2}
 /* 휴대폰·태블릿: 팝업 뒤 흐림 효과 대신 진한 반투명 배경 (화면 전체를 다시 그리는 부담 제거) */
 @media (pointer:coarse){.scrim{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(8,14,20,.62)}}
+.credits{font-size:12px;line-height:1.5}
 #confetti{position:fixed;inset:0;width:100%;height:100%;z-index:6000;pointer-events:none;display:none}
 #confetti.on{display:block}
 
@@ -460,7 +474,7 @@ html.vt-circle::view-transition-new(root){z-index:2}
         </ol>
       </div>
     </div>
-    <div class="sheet-foot"><span class="muted">위성 사진: Esri World Imagery</span><button class="primary" data-close="tutScrim">닫기</button></div>
+    <div class="sheet-foot"><span class="muted credits">© 2026 samsungkorea. 코드와 디자인 All rights reserved.<br>위성 사진: Powered by Esri · Esri, Maxar, Earthstar Geographics, GIS User Community<br>지도 Leaflet · 글꼴 Pretendard, Bricolage Grotesque</span><button class="primary" data-close="tutScrim">닫기</button></div>
   </div>
 </div>
 
@@ -794,7 +808,7 @@ const ZOOM_HANDLERS=["touchZoom","scrollWheelZoom","doubleClickZoom"];
 function setPinch(on){allMaps.forEach(m=>ZOOM_HANDLERS.forEach(h=>on?m[h].enable():m[h].disable()))}
 function makeMap(el){
   const m=L.map(el,{dragging:false,touchZoom:"center",scrollWheelZoom:"center",doubleClickZoom:"center",boxZoom:false,keyboard:false,zoomControl:false,zoomSnap:0.25,inertia:false,fadeAnimation:true});
-  L.tileLayer(ESRI,{maxZoom:19,maxNativeZoom:19,detectRetina:true,attribution:"Imagery © Esri, Maxar, Earthstar Geographics"}).addTo(m);
+  L.tileLayer(ESRI,{maxZoom:19,maxNativeZoom:19,detectRetina:true,attribution:"Powered by Esri · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community"}).addTo(m);
   m.attributionControl.setPrefix(false);
   m.setView([20,0],2,{animate:false});
   ZOOM_HANDLERS.forEach(h=>m[h].disable());
