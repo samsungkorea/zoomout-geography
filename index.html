@@ -494,6 +494,7 @@ html.vt-circle::view-transition-new(root){z-index:2}
       <div class="group" id="vibeGroup" hidden>
         <div class="group-head"><h3>진동</h3><span class="muted">맞히거나 틀릴 때 짧게 울려요</span></div>
         <div class="seg" id="vibeSeg"><button data-vibe="on">켜기</button><button data-vibe="off">끄기</button></div>
+        <button class="toggle-all" id="vibeTest" style="margin-left:14px">진동 테스트</button>
       </div>
       <div class="group">
         <div class="group-head"><h3>계정</h3><button class="toggle-all" id="setSwitch">로그인</button></div>
@@ -1038,7 +1039,7 @@ function answer(passed){
   $("passBtn").disabled=true;$("hintBtn").disabled=true;
   addHistory(item);renderTop();
   st.revealItem=item;renderReveal();
-  buzz(ok?28:[45,60,45]);
+  buzz(ok?55:[70,90,70]);
   $("reveal").classList.add("show");
   playRevealZoom(city);
   /* 퀴즈는 줌아웃(1.6초)을 다 본 뒤 자동으로 넘어감. 기다리기 싫으면 Enter로 바로 다음 */
@@ -1107,7 +1108,7 @@ function showResult(){
   let html;
   if(!missed.length){
     html='<div class="celebrate'+(st.hard?" hard-cele":"")+'"><div class="trophy">'+(st.hard?"🛰️":"🏆")+'</div><div class="result-big">'+total+" / "+total+'</div><p class="cheer">'+(st.hard?"HARD 세트를 전부 맞혔어요! 정찰 임무 완수.":st.hintsUsed?"전부 맞혔어요! 힌트는 "+st.hintsUsed+"번 썼어요.":"힌트 없이 전부 맞혔어요. 완벽해요!")+"</p></div>";
-    setTimeout(confetti,250);buzz([30,60,30,60,90]);
+    setTimeout(confetti,250);buzz([60,80,60,80,160]);
   }else{
     const pct=Math.round(st.correct/total*100);
     html='<div class="result-big">'+st.correct+" / "+total+'</div><div class="muted">정답률 '+pct+"% · 힌트 사용 "+st.hintsUsed+"번</div>";
@@ -1609,8 +1610,9 @@ const vibeOn=()=>canVibe&&store.get("mq-vibe",true)!==false;
 function buzz(p){if(vibeOn())try{navigator.vibrate(p)}catch(e){}}
 if(canVibe)$("vibeGroup").hidden=false;
 function renderVibe(){document.querySelectorAll("#vibeSeg button").forEach(b=>b.setAttribute("aria-pressed",String((b.dataset.vibe==="on")===vibeOn())))}
-$("vibeSeg").addEventListener("click",e=>{const b=e.target.closest("[data-vibe]");if(!b)return;store.set("mq-vibe",b.dataset.vibe==="on");renderVibe();if(b.dataset.vibe==="on")buzz(30)});
+$("vibeSeg").addEventListener("click",e=>{const b=e.target.closest("[data-vibe]");if(!b)return;store.set("mq-vibe",b.dataset.vibe==="on");renderVibe();if(b.dataset.vibe==="on")buzz([60,80,60])});
 renderVibe();
+$("vibeTest").onclick=()=>{if(!vibeOn()){toast("진동이 꺼져 있어요. 켜기를 먼저 눌러 주세요.");return}buzz([60,80,60]);toast("진동을 보냈어요. 안 느껴지면 휴대폰 진동 설정을 확인해 주세요.")};
 
 updateUser();
 newGame();
