@@ -970,6 +970,13 @@ let st=null,revealTimer=null,lastSet=null,lastMissed=[];
 /* 마우스로 쓰는 중일 때만 입력칸에 자동 포커스 (터치 기기에서 키보드가 멋대로 올라오지 않게) */
 let lastPointer="mouse";
 document.addEventListener("pointerdown",e=>{lastPointer=e.pointerType||"mouse"},true);
+/* 터치 기기: 키보드를 내려 둔 채 입력칸에 커서만 남아 있으면, 다른 곳을 누를 때 커서도 빼서
+   새 문제 시작 같은 화면 변화가 키보드를 다시 불러오지 않게 함 */
+document.addEventListener("pointerdown",e=>{
+  if(e.pointerType==="mouse"||document.body.classList.contains("kb"))return;
+  const a=document.getElementById("answer");
+  if(a&&document.activeElement===a&&!e.target.closest("#answerBox"))a.blur();
+},true);
 const fine=()=>lastPointer==="mouse"&&matchMedia("(hover:hover) and (pointer:fine)").matches&&!matchMedia("(pointer:coarse)").matches;
 
 function startGame(kind,list,opt){
@@ -1446,8 +1453,31 @@ function openSettings(){renderSettings();openM("tutScrim")}
 
 /* ---------- Modals ---------- */
 let lastFocus=null;
-function openM(id){lastFocus=document.activeElement;const s=$(id);s.classList.add("open");if(id!=="loginScrim"){const f=s.querySelector(".primary");if(f&&fine())setTimeout(()=>f.focus(),50)}}
-function closeM(id){$(id).classList.remove("open");if(id==="tutScrim")store.set("mq-tut",true);if(lastFocus&&lastFocus.focus&&fine())lastFocus.focus()}
+/* ---------- 뒤로가기: 팝업·둘러보기를 먼저 닫고, 첫 화면에선 한 번 더 눌러야 나가기 ---------- */
+let ignorePop=false,guardOn=false;
+function pushNav(st){try{history.pushState(st,"")}catch(e){}}
+function popNavIf(match){const h=history.state;if(h&&h.zo&&match(h)){ignorePop=true;history.back();return true}return false}
+function ensureGuard(){if(guardOn||document.querySelector(".scrim.open")||browsing)return;const h=history.state;if(h&&h.zo)return;pushNav({zo:"guard"});guardOn=true}
+document.addEventListener("pointerdown",ensureGuard,true);
+document.addEventListener("keydown",ensureGuard,true);
+window.addEventListener("popstate",()=>{
+  if(ignorePop){ignorePop=false;return}
+  const open=[...document.querySelectorAll(".scrim.open")];
+  if(open.length){
+    const id=open[open.length-1].id;
+    if(id==="loginScrim")$("guestBtn").click();
+    else if(id==="migScrim")$("migSkip").click();
+    else if(id==="nickScrim"&&!$("nickSkip").hidden)$("nickSkip").click();
+    else if(id==="cfmScrim")$("cfmNo").click();
+    else closeM(id,true);
+    return;
+  }
+  if(browsing){exitBrowse(true);return}
+  guardOn=false;
+  toast("뒤로가기를 한 번 더 누르면 사이트를 나가요.");
+});
+function openM(id){lastFocus=document.activeElement;const s=$(id);if(!s.classList.contains("open"))pushNav({zo:"modal",id});s.classList.add("open");if(id!=="loginScrim"){const f=s.querySelector(".primary");if(f&&fine())setTimeout(()=>f.focus(),50)}}
+function closeM(id,fromPop){if(!fromPop&&$(id).classList.contains("open"))popNavIf(h=>h.zo==="modal"&&h.id===id);$(id).classList.remove("open");if(id==="tutScrim")store.set("mq-tut",true);if(lastFocus&&lastFocus.focus&&fine())lastFocus.focus()}
 document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>closeM(b.dataset.close)));
 document.querySelectorAll(".scrim").forEach(s=>s.addEventListener("click",e=>{if(e.target===s&&s.id!=="loginScrim")closeM(s.id)}));
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const o=document.querySelector(".scrim.open");if(o&&o.id!=="loginScrim"){if(o.id==="cfmScrim")cfmAction=null;closeM(o.id)}}});
@@ -1464,6 +1494,7 @@ $("zOut").onclick=()=>(browsing?mapD:(viewMap||maps[active])).zoomOut(1);
 /* ---------- Practice: city list + browse ---------- */
 let browsing=null,listQuery="";
 function startBrowse(city){
+  if(!browsing)setTimeout(()=>pushNav({zo:"browse"}),260);
   browsing=city;
   mapD.setView([city.lat,city.lng],city.zoom,{animate:false});
   layerD.classList.remove("off");document.body.classList.add("browsing");
@@ -1477,8 +1508,9 @@ function renderBrowse(){
   h+='<div class="browse-btns"><button class="memo-btn" id="browseList">← 목록</button><button class="memo-btn" id="browseExit">연습으로 돌아가기</button></div>';
   $("browseCard").innerHTML=h;
 }
-function exitBrowse(){
+function exitBrowse(fromPop){
   if(!browsing)return;
+  if(!fromPop)popNavIf(h=>h.zo==="browse");
   browsing=null;layerD.classList.add("off");document.body.classList.remove("browsing");
   $("browseCard").classList.remove("show");
   if(fine())$("answer").focus();
