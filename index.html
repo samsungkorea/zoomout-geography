@@ -425,6 +425,31 @@ html.vt-circle::view-transition-new(root){z-index:2}
 html.android .map-layer.off{filter:none}
 html.android .scrim{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(8,14,20,.55)}
 
+/* 기록 목록의 가장자리 흐림은 내용이 넘칠 때만 (안내 문구·첫 항목 왼쪽이 잘려 보이던 문제) */
+.history:not(.over),#history:not(.over){mask-image:none;-webkit-mask-image:none}
+
+/* ---------- 튜토리얼 (코치 마크) ---------- */
+.coach{position:fixed;inset:0;z-index:6500;visibility:hidden;opacity:0;transition:opacity .35s var(--e-out),visibility 0s linear .35s}
+.coach.on{visibility:visible;opacity:1;transition:opacity .5s var(--e-out),visibility 0s}
+.coach-veil{position:absolute;inset:0;background:rgba(8,14,20,.5);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+html.android .coach-veil{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(8,14,20,.62)}
+.coach-ring{position:absolute;left:0;top:0;width:0;height:0;border-radius:12px;pointer-events:none;box-shadow:0 0 0 2px rgba(255,255,255,.92),0 0 0 7px rgba(255,255,255,.14);transition:opacity .3s var(--e-out)}
+body.hard .coach-ring{box-shadow:0 0 0 2px var(--amber),0 0 0 7px rgba(242,182,50,.16)}
+.coach-skip{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:calc(16px + env(safe-area-inset-right,0px));border:0;border-radius:999px;padding:8px 16px;background:rgba(255,255,255,.16);color:#fff;font:inherit;font-size:15px;font-weight:600;cursor:pointer;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.coach-card{position:absolute;left:0;top:0;width:min(340px,calc(100vw - 32px));background:var(--surface);color:var(--ink);border-radius:14px;padding:18px 18px 12px;box-shadow:0 18px 50px rgba(0,0,0,.3);transition:transform .6s var(--e-out);will-change:transform}
+.coach-card.snap{transition:none}
+.coach-body{transition:opacity .18s var(--e-out),transform .18s var(--e-out)}
+.coach-body.out{opacity:0;transform:translateY(5px)}
+.coach-body h3{font-family:var(--display);font-size:19px;margin:0 0 6px;letter-spacing:-.01em}
+.coach-body p{margin:0;font-size:15px;line-height:1.55;color:var(--muted)}
+.coach-body p+p{margin-top:6px}
+.coach-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px}
+.coach-nav button{min-width:40px;height:40px;border-radius:999px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-size:22px;line-height:1;cursor:pointer;transition:opacity .2s,background-color .2s,scale .35s var(--e-spring)}
+.coach-nav button:disabled{opacity:.25;cursor:default}
+#coachNext{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+#coachNext.go{padding:0 18px;font-size:16px;font-weight:700}
+.coach-count{font-family:var(--display);font-variant-numeric:tabular-nums;color:var(--muted);font-size:15px}
+
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}
 }
@@ -573,20 +598,22 @@ html.android .scrim{backdrop-filter:none;-webkit-backdrop-filter:none;background
         <div class="acct-actions"><button class="toggle-all" id="setNick" hidden>닉네임 바꾸기</button><button class="toggle-all" id="setMigrate" hidden>예전 아이디 기록 가져오기</button></div>
       </div>
       <div class="group">
-        <div class="group-head"><h3>이렇게 플레이해요</h3></div>
-        <ol>
-          <li>라벨 없는 위성 사진이 한 장 나와요. 퀴즈 모드에서는 지도가 움직이지 않아요.</li>
-          <li>어느 도시인지 영어나 한글로 입력하고 Enter를 누르세요. 악센트와 한두 글자 오타, LA·NYC 같은 약칭도 인정해요.</li>
-          <li>막히면 Hint를 누르세요. 첫 번째는 나라, 두 번째는 첫 글자를 알려줘요. EASY 퀴즈에서는 세 번째 힌트로 지도를 확대·축소할 수 있어요.</li>
-          <li>키보드 단축키: Alt+H 힌트, Alt+P 패스(연습에선 정답 보기), Alt+L 도시 목록(연습). 맥은 Option 키를 쓰면 돼요.</li>
-          <li>Practice 모드는 문제 수 제한이 없고, 두 손가락으로 지도를 벌리거나 오므려 확대·축소할 수 있어요. List를 누르면 범위 안의 도시 목록이 나오고, 도시를 누르면 그 위성 사진을 둘러볼 수 있어요.</li>
-          <li>제목 옆 모드 버튼으로 EASY, NORMAL, HARD를 고를 수 있어요. EASY는 유명한 도시만 나오고 사진도 덜 흔들려요. HARD는 소도시 402곳이 더해져 함께 섞여 나와요.</li>
-          <li>한 세트가 끝나면 틀린 도시만 골라 복습할 수 있어요. 로그인하면 Records에 결과가 쌓여요.</li>
-          <li>세트 결과 화면이나 Practice 정답 화면에서 ☆를 눌러 즐겨찾기에 담고 메모를 남길 수 있어요. Records에서 즐겨찾기만 복습하거나, 출제 범위에서 "즐겨찾기만"을 켤 수 있어요. 퀴즈 중에는 즐겨찾기 표시가 나오지 않아요.</li>
-        </ol>
+        <div class="group-head"><h3>도움말</h3></div>
+        <button class="ghost" id="coachReplay">튜토리얼 다시 보기</button>
       </div>
     </div>
     <div class="sheet-foot"><span class="muted credits">© 2026 samsungkorea. 코드와 디자인 All rights reserved.<br>위성 사진: Powered by Esri · Esri, Maxar, Earthstar Geographics, GIS User Community<br>지도 Leaflet · 글꼴 Pretendard, Bricolage Grotesque<br>서비스 개선을 위해 Google Analytics로 방문 통계를 수집해요. 이름 같은 개인 정보는 보내지 않아요.</span><button class="primary" data-close="tutScrim">닫기</button></div>
+  </div>
+</div>
+
+<!-- 튜토리얼 -->
+<div class="coach" id="coach" aria-hidden="true">
+  <div class="coach-veil" id="coachVeil"></div>
+  <div class="coach-ring" id="coachRing"></div>
+  <button class="coach-skip" id="coachSkip">건너뛰기</button>
+  <div class="coach-card" id="coachCard" role="dialog" aria-modal="true" aria-labelledby="coachTitle">
+    <div class="coach-body" id="coachBody"><h3 id="coachTitle"></h3><div id="coachText"></div></div>
+    <div class="coach-nav"><button id="coachPrev" aria-label="이전">‹</button><span class="coach-count" id="coachCount"></span><button id="coachNext" aria-label="다음">›</button></div>
   </div>
 </div>
 
@@ -1137,7 +1164,7 @@ function startGame(kind,list,opt){
       scope:opt.label||(kind==="review"?"복습":scopeLabel(settings.regions)+(settings.favOnly?" ★":"")),hard:modeOf(diff).theme==="hard",diff,views:[]};
   track("game_start",{game_kind:kind,game_mode:diff,question_count:list.length});
   document.body.classList.toggle("practice",kind==="practice");document.body.classList.remove("zoomable");setPinch(kind==="practice");
-  $("history").innerHTML="";$("reveal").classList.remove("show");
+  $("history").innerHTML="";$("history").classList.remove("over");$("reveal").classList.remove("show");
   endReveal();layers.forEach(l=>{l.classList.add("off");clearInline(l)});
   active=0;place(0,0);place(1,1);
   layers[0].classList.remove("off");layers[1].classList.add("off");
@@ -1235,7 +1262,10 @@ function addHistory(it){
     e.animate([{transform:"translate("+dx+"px,"+dy+"px)"},{transform:"none"}],{duration:420,easing:"cubic-bezier(.22,1,.36,1)"});
   });
   h.scrollTop=h.scrollHeight;
+  fitHistory();setTimeout(fitHistory,500);
 }
+function fitHistory(){const h=$("history");h.classList.toggle("over",h.scrollHeight>h.clientHeight+1||h.scrollWidth>h.clientWidth+1)}
+window.addEventListener("resize",()=>fitHistory());
 /* 다음 사진이 다 받아진 뒤에 겹쳐 바꿈 (회색 칸 깜빡임 방지). 최대 0.65초까지만 기다림 */
 let pendingSwap=null;
 function flushSwap(){const f=pendingSwap;pendingSwap=null;if(f)f()}
@@ -1447,6 +1477,7 @@ async function initAuth(){
   }catch(e){
     authReady=true;syncState="error";renderSync();
     toast("로그인 기능을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.");
+    maybeCoach(600);
   }
 }
 async function onAuth(user){
@@ -1455,7 +1486,7 @@ async function onAuth(user){
     if(me){me=null;meInfo=null;store.set("mq-uid",null);updateUser();updateScope()}
     if(first){
       if(!store.get("mq-guest",false))setTimeout(openLogin,300);
-      else if(!store.get("mq-tut",false))setTimeout(openSettings,300);
+      else maybeCoach(300);
     }
     return;
   }
@@ -1495,7 +1526,7 @@ function googleLogin(){
   });
 }
 function logout(){if(fbAuth&&fbMod)fbMod.signOut(fbAuth);else{me=null;meInfo=null;store.set("mq-uid",null);updateUser()}toast("로그아웃했어요.")}
-function afterLogin(){if(!store.get("mq-tut",false))setTimeout(openSettings,300)}
+function afterLogin(){maybeCoach(350)}
 $("googleBtn").onclick=googleLogin;
 $("guestBtn").onclick=()=>{store.set("mq-guest",true);track("guest_start");closeM("loginScrim");afterLogin()};
 
@@ -1504,7 +1535,7 @@ let nickFirst=false;
 function needMigrate(){const p=profile();return !!p&&!p.migrateAsked}
 function nextAfterNick(){
   if(needMigrate()&&(Object.keys(legacyUsers).length||!(profile().games||[]).length))setTimeout(openMigrate,350);
-  else if(!store.get("mq-tut",false))setTimeout(openSettings,350);
+  else maybeCoach(350);
 }
 function openNick(first){
   nickFirst=!!first;const p=profile();if(!p)return;
@@ -1649,6 +1680,7 @@ document.addEventListener("pointerdown",ensureGuard,true);
 document.addEventListener("keydown",ensureGuard,true);
 window.addEventListener("popstate",()=>{
   if(ignorePop){ignorePop=false;return}
+  if(coachOn()){endCoach(true,true);return}
   const open=[...document.querySelectorAll(".scrim.open")];
   if(open.length){
     const id=open[open.length-1].id;
@@ -1664,10 +1696,144 @@ window.addEventListener("popstate",()=>{
   toast("뒤로가기를 한 번 더 누르면 사이트를 나가요.");
 });
 function openM(id){lastFocus=document.activeElement;const s=$(id);if(!s.classList.contains("open"))pushNav({zo:"modal",id});s.classList.add("open");if(id!=="loginScrim"){const f=s.querySelector(".primary");if(f&&fine())setTimeout(()=>f.focus(),50)}}
-function closeM(id,fromPop){if(!fromPop&&$(id).classList.contains("open"))popNavIf(h=>h.zo==="modal"&&h.id===id);$(id).classList.remove("open");if(id==="tutScrim")store.set("mq-tut",true);if(lastFocus&&lastFocus.focus&&fine())lastFocus.focus()}
+function closeM(id,fromPop){if(!fromPop&&$(id).classList.contains("open"))popNavIf(h=>h.zo==="modal"&&h.id===id);$(id).classList.remove("open");if(lastFocus&&lastFocus.focus&&fine())lastFocus.focus()}
 document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>closeM(b.dataset.close)));
 document.querySelectorAll(".scrim").forEach(s=>s.addEventListener("click",e=>{if(e.target===s&&s.id!=="loginScrim")closeM(s.id)}));
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const o=document.querySelector(".scrim.open");if(o&&o.id!=="loginScrim"){if(o.id==="cfmScrim")cfmAction=null;closeM(o.id)}}});
+
+/* ---------- 튜토리얼 (처음 한 번 + 설정에서 다시 보기) ---------- */
+const COACH=[
+  {t:"반가워요! 👋",d:["ZoomOut은 라벨 없는 위성 사진만 보고 세계 도시를 맞히는 퀴즈예요.","1분이면 다 알려 드릴게요."]},
+  {el:"mapBox",pad:4,t:"이 사진은 어느 도시일까요?",d:["도시 이름도, 지명도 없어요. 강과 해안선, 공항, 도로 모양이 단서예요.","퀴즈에서는 지도가 움직이지 않아요."]},
+  {el:"answerBox",t:"정답 입력",d:["도시 이름을 영어나 한글로 쓰고 Enter를 누르세요.","악센트, 한두 글자 오타, LA·NYC 같은 약칭도 정답으로 인정해요."]},
+  {el:"passBtn",t:"모르겠으면 Pass",d:["정답을 보여 주고 다음 문제로 넘어가요. 틀린 문제로 기록돼요."]},
+  {el:"hintBtn",t:"막히면 Hint",d:["첫 번째는 나라, 두 번째는 첫 글자를 알려 줘요. 옆의 점은 남은 힌트예요.","EASY 퀴즈에서는 세 번째 힌트로 지도를 확대·축소할 수 있어요."]},
+  {el:"history",t:"풀이 기록",d:["맞힌 도시와 틀린 도시가 여기 차곡차곡 쌓여요."]},
+  {sel:".score",t:"점수",d:["맞힌 수 / 푼 문제 수예요. 아래 막대는 정답률이에요."]},
+  {el:"qnum",t:"문제 번호",d:["지금 몇 번째 문제인지 보여 줘요.","한 세트가 끝나면 결과와 함께 틀린 도시만 골라 복습할 수 있어요."]},
+  {sel:".mode",t:"Quiz와 Practice",d:["Practice는 문제 수 제한 없이 계속 나오고, 두 손가락으로 확대·축소할 수 있어요.","List를 누르면 도시 목록이 나오고, 원하는 도시의 사진을 둘러볼 수 있어요."]},
+  {el:"hardBtn",t:"모드",d:["EASY는 유명한 도시만, NORMAL은 기본, HARD는 소도시까지 모두 나와요.","아래 스페셜에는 특별한 모드가 추가될 예정이에요."]},
+  {el:"scopeBtn",t:"출제 범위",d:["대륙이나 권역을 골라 원하는 곳만 풀 수 있어요. 즐겨찾기만 골라 풀 수도 있어요."]},
+  {el:"recBtn",t:"Records",d:["지난 결과가 여기 쌓여요. 로그인하면 다른 기기에서도 이어져요.","결과 화면이나 Practice 정답 화면에서 ☆를 누르면 즐겨찾기와 메모를 남길 수 있어요."]},
+  {el:"tutBtn",t:"Settings",d:["화면 모드와 계정을 바꿀 수 있어요. 이 튜토리얼도 여기서 다시 볼 수 있어요."],pc:"키보드 단축키: Alt+H 힌트, Alt+P 패스, Alt+L 도시 목록(연습). 맥은 Option 키예요."},
+  {t:"준비 끝!",d:["그럼 첫 문제를 풀어 볼까요?"],last:true}
+];
+let coach=null;
+const coachOn=()=>!!coach;
+function maybeCoach(delay){if(!store.get("mq-coach",false))setTimeout(()=>{if(!coach&&!document.querySelector(".scrim.open"))startCoach()},delay||0)}
+function coachTarget(st){
+  const e=st.el?$(st.el):st.sel?document.querySelector(st.sel):null;
+  const W=innerWidth,H=innerHeight;
+  if(e){const r=e.getBoundingClientRect();if(r.width>0&&r.height>0){const p=st.pad==null?8:st.pad;return{x:r.left-p,y:r.top-p,w:r.width+p*2,h:r.height+p*2,r:Math.min(14,(r.height+p*2)/2)}}}
+  return{x:W/2,y:H/2,w:0,h:0,r:0};
+}
+function coachPoly(R,W,H){
+  const pts=["0 0",W+"px 0",W+"px "+H+"px","0 "+H+"px","0 0"];
+  if(R.w>=1&&R.h>=1){
+    const r=Math.max(0,Math.min(R.r,R.w/2,R.h/2)),N=6;
+    const cs=[[R.x+R.w-r,R.y+r,-90],[R.x+R.w-r,R.y+R.h-r,0],[R.x+r,R.y+R.h-r,90],[R.x+r,R.y+r,180]];
+    const inner=[];
+    cs.forEach(([cx,cy,a0])=>{for(let k=0;k<=N;k++){const a=(a0+90*k/N)*Math.PI/180;inner.push((cx+r*Math.cos(a)).toFixed(1)+"px "+(cy+r*Math.sin(a)).toFixed(1)+"px")}});
+    pts.push(...inner,inner[0],"0 0");
+  }
+  return"polygon(evenodd,"+pts.join(",")+")";
+}
+function coachPaint(R){
+  const W=innerWidth,H=innerHeight;
+  $("coachVeil").style.clipPath=$("coachVeil").style.webkitClipPath=coachPoly(R,W,H);
+  const g=$("coachRing").style;
+  g.transform="translate("+R.x+"px,"+R.y+"px)";g.width=R.w+"px";g.height=R.h+"px";g.borderRadius=R.r+"px";
+  g.opacity=R.w<4?"0":"1";
+}
+function coachTween(to,dur){
+  if(!coach)return;
+  cancelAnimationFrame(coach.raf);
+  const from={...coach.cur};
+  if(!dur||calmMotion.matches){coach.cur=to;coachPaint(to);return}
+  const t0=performance.now(),ease=t=>1-Math.pow(1-t,4);
+  const step=now=>{
+    if(!coach)return;
+    const k=Math.min(1,(now-t0)/dur),e=ease(k),R={};
+    for(const key of["x","y","w","h","r"])R[key]=from[key]+(to[key]-from[key])*e;
+    coach.cur=R;coachPaint(R);
+    if(k<1)coach.raf=requestAnimationFrame(step);
+  };
+  coach.raf=requestAnimationFrame(step);
+}
+function coachPlace(R,snap){
+  const card=$("coachCard"),W=innerWidth,H=innerHeight,M=14,E=16;
+  const cw=card.offsetWidth,ch=card.offsetHeight,top0=Math.max(E,60);
+  const clampX=x=>Math.max(E,Math.min(W-cw-E,x)),clampY=y=>Math.max(top0,Math.min(H-ch-E,y));
+  let x,y;
+  if(R.w<1){x=(W-cw)/2;y=(H-ch)/2}
+  else{
+    const below=H-(R.y+R.h),above=R.y,right=W-(R.x+R.w),left=R.x,cx=R.x+R.w/2,cy=R.y+R.h/2;
+    if(below>=ch+M+E){x=clampX(cx-cw/2);y=R.y+R.h+M}
+    else if(above>=ch+M+top0){x=clampX(cx-cw/2);y=R.y-M-ch}
+    else if(right>=cw+M+E){x=R.x+R.w+M;y=clampY(cy-ch/2)}
+    else if(left>=cw+M+E){x=R.x-M-cw;y=clampY(cy-ch/2)}
+    else{x=(W-cw)/2;y=H-ch-E-24}   /* 큰 사진처럼 자리가 없으면 화면 아래쪽에 겹쳐 띄움 */
+  }
+  card.classList.toggle("snap",!!snap);
+  card.style.transform="translate3d("+Math.round(x)+"px,"+Math.round(y)+"px,0)";
+  if(snap){void card.offsetWidth;card.classList.remove("snap")}
+}
+function coachFill(i){
+  const st=COACH[i],n=COACH.length;
+  $("coachTitle").textContent=st.t;
+  const lines=st.d.slice();if(st.pc&&fine())lines.push(st.pc);
+  $("coachText").innerHTML=lines.map(l=>"<p>"+esc(l)+"</p>").join("");
+  $("coachCount").textContent=(i+1)+" / "+n;
+  $("coachPrev").disabled=i===0;
+  const nx=$("coachNext");nx.classList.toggle("go",!!st.last);nx.textContent=st.last?"시작하기":"›";nx.setAttribute("aria-label",st.last?"시작하기":"다음");
+}
+function coachGo(i,first){
+  if(!coach||i<0||i>=COACH.length)return;
+  coach.i=i;
+  const to=coachTarget(COACH[i]),body=$("coachBody");
+  if(first){coachFill(i);coach.cur=to;coachPaint(to);coachPlace(to,true);return}
+  coachTween(to,620);
+  body.classList.add("out");
+  clearTimeout(coach.tm);
+  coach.tm=setTimeout(()=>{
+    if(!coach)return;
+    coachFill(i);coachPlace(to,false);
+    requestAnimationFrame(()=>body.classList.remove("out"));
+  },calmMotion.matches?0:170);
+}
+function startCoach(){
+  if(coach)return;
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  coach={i:0,cur:{x:innerWidth/2,y:innerHeight/2,w:0,h:0,r:0},raf:0,tm:0};
+  pushNav({zo:"coach"});
+  const c=$("coach");c.setAttribute("aria-hidden","false");
+  coachGo(0,true);
+  requestAnimationFrame(()=>c.classList.add("on"));
+  track("tutorial_begin");
+}
+function endCoach(skipped,fromPop){
+  if(!coach)return;
+  const i=coach.i;cancelAnimationFrame(coach.raf);clearTimeout(coach.tm);coach=null;
+  store.set("mq-coach",true);
+  if(!fromPop)popNavIf(h=>h.zo==="coach");
+  const c=$("coach");c.classList.remove("on");c.setAttribute("aria-hidden","true");
+  track("tutorial_complete",{skipped:!!skipped,step:i+1});
+  if(!skipped&&fine())setTimeout(()=>$("answer").focus(),400);
+}
+$("coachNext").onclick=()=>{if(!coach)return;if(coach.i>=COACH.length-1)endCoach(false);else coachGo(coach.i+1)};
+$("coachPrev").onclick=()=>{if(coach)coachGo(coach.i-1)};
+$("coachSkip").onclick=()=>endCoach(true);
+$("coachReplay").onclick=()=>{closeM("tutScrim");setTimeout(startCoach,380)};
+window.addEventListener("keydown",e=>{
+  if(!coach)return;
+  if(e.key==="ArrowRight"||e.key==="Enter"){e.preventDefault();$("coachNext").click()}
+  else if(e.key==="ArrowLeft"){e.preventDefault();$("coachPrev").click()}
+  else if(e.key==="Escape"){e.preventDefault();endCoach(true)}
+  e.stopImmediatePropagation();
+},true);
+window.addEventListener("resize",()=>{if(!coach)return;const R=coachTarget(COACH[coach.i]);cancelAnimationFrame(coach.raf);coach.cur=R;coachPaint(R);coachPlace(R,true)});
+/* 예전에 접속한 적 있는 사람도 한 번은 보도록: 로그인 창 등이 떠 있지 않을 때 시작 */
+setTimeout(()=>{if((me||store.get("mq-guest",false))&&!store.get("mq-coach",false))maybeCoach(0)},2500);
 
 /* ---------- Wire up ---------- */
 $("enterBtn").onclick=()=>answer(false);
