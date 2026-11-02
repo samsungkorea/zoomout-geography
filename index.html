@@ -73,6 +73,12 @@ button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 [hidden]{display:none!important}
 :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+/* 안드로이드 크롬·삼성 인터넷의 파란 터치 상자 없애고, 대신 누르는 동안 살짝 흐려지게 */
+html{-webkit-tap-highlight-color:transparent}
+*{-webkit-tap-highlight-color:transparent}
+@media (hover:none){
+  button:not(:disabled):active,[role="button"]:active,a:active{opacity:.6}
+}
 
 /* ---------- Layout: always fits one screen ---------- */
 .app{
