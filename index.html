@@ -19,7 +19,7 @@
 <meta name="copyright" content="© 2026 samsungkorea. All rights reserved.">
 <meta name="description" content="라벨 없는 위성 사진으로 도시를 맞혀 보세요. 전 세계 771개 도시 퀴즈.">
 <link rel="canonical" href="https://samsungkorea.github.io/satellite-quiz/">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"ZoomOut Geography","alternateName":"ZoomOut Geo","url":"https://samsungkorea.github.io/satellite-quiz/","description":"라벨 없는 위성 사진을 보고 전 세계 도시를 맞히며 외우는 지리 퀴즈. 연습 모드, 복습, 즐겨찾기, EASY·HARD 난이도 지원.","applicationCategory":"EducationalApplication","operatingSystem":"Any","inLanguage":"ko","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"ZoomOut Geography","alternateName":"ZoomOut Geo","url":"https://samsungkorea.github.io/satellite-quiz/","description":"라벨 없는 위성 사진을 보고 전 세계 도시를 맞히며 외우는 지리 퀴즈. 연습 모드, 복습, 즐겨찾기, EASY·HARD 등 여러 모드 지원.","applicationCategory":"EducationalApplication","operatingSystem":"Any","inLanguage":"ko","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"}}</script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ZoomOut Geography">
 <meta property="og:title" content="ZoomOut Geography — 위성 사진 도시 퀴즈">
@@ -338,7 +338,12 @@ body.easy .hard-btn{border-color:var(--ok);color:var(--ok)}
 .diff-opt[data-diff="easy"][aria-pressed="true"]{border-color:var(--ok)}
 .diff-opt[data-diff="hard"][aria-pressed="true"]{border-color:var(--amber)}
 .dots i.d3{display:none}
-body.easy:not(.practice) .dots i.d3{display:inline-block}
+.diff-sec{margin:20px 0 10px;font-family:var(--display);font-size:15px;font-weight:700;color:var(--muted)}
+.diff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px}
+.diff-opt:disabled{opacity:.5;cursor:default}
+.diff-opt .soon{display:block;margin-top:2px;font-size:13px;color:var(--muted)}
+.mode-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:4px;background:var(--ink);color:var(--surface);font-size:11px;font-weight:700;letter-spacing:.05em;vertical-align:1px}
+body.zoomhint:not(.practice) .dots i.d3{display:inline-block}
 body.zoomable .zoomctl{display:flex}
 body.zoomable .map-layer:not(.off){pointer-events:auto}
 .hard-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:4px;background:#f2b632;color:#0b1322;font-size:11px;font-weight:700;letter-spacing:.05em;vertical-align:1px}
@@ -398,7 +403,7 @@ html.vt-circle::view-transition-new(root){z-index:2}
         <span class="mode-pill no-anim" id="modePill" aria-hidden="true"></span>
         <button data-mode="quiz" aria-pressed="true">Quiz</button><button data-mode="practice" aria-pressed="false">Practice</button>
       </div>
-      <button class="hard-btn" id="hardBtn" aria-haspopup="dialog" title="난이도 고르기"><span id="diffTxt">NORMAL</span><span class="cv" aria-hidden="true">▾</span></button>
+      <button class="hard-btn" id="hardBtn" aria-haspopup="dialog" title="모드 고르기"><span id="diffTxt">NORMAL</span><span class="cv" aria-hidden="true">▾</span></button>
     </div>
     <div class="qnum" id="qnum">#1<small>/ 20</small></div>
   </header>
@@ -539,7 +544,7 @@ html.vt-circle::view-transition-new(root){z-index:2}
           <li>막히면 Hint를 누르세요. 첫 번째는 나라, 두 번째는 첫 글자를 알려줘요. EASY 퀴즈에서는 세 번째 힌트로 지도를 확대·축소할 수 있어요.</li>
           <li>키보드 단축키: Alt+H 힌트, Alt+P 패스(연습에선 정답 보기), Alt+L 도시 목록(연습). 맥은 Option 키를 쓰면 돼요.</li>
           <li>Practice 모드는 문제 수 제한이 없고, 두 손가락으로 지도를 벌리거나 오므려 확대·축소할 수 있어요. List를 누르면 범위 안의 도시 목록이 나오고, 도시를 누르면 그 위성 사진을 둘러볼 수 있어요.</li>
-          <li>제목 옆 난이도 버튼으로 EASY, NORMAL, HARD를 고를 수 있어요. EASY는 유명한 도시만 나오고 사진도 덜 흔들려요. HARD는 소도시 402곳이 더해져 함께 섞여 나와요.</li>
+          <li>제목 옆 모드 버튼으로 EASY, NORMAL, HARD를 고를 수 있어요. EASY는 유명한 도시만 나오고 사진도 덜 흔들려요. HARD는 소도시 402곳이 더해져 함께 섞여 나와요.</li>
           <li>한 세트가 끝나면 틀린 도시만 골라 복습할 수 있어요. 로그인하면 Records에 결과가 쌓여요.</li>
           <li>세트 결과 화면이나 Practice 정답 화면에서 ☆를 눌러 즐겨찾기에 담고 메모를 남길 수 있어요. Records에서 즐겨찾기만 복습하거나, 출제 범위에서 "즐겨찾기만"을 켤 수 있어요. 퀴즈 중에는 즐겨찾기 표시가 나오지 않아요.</li>
         </ol>
@@ -610,7 +615,7 @@ html.vt-circle::view-transition-new(root){z-index:2}
 <!-- Difficulty -->
 <div class="scrim" id="diffScrim" role="dialog" aria-modal="true" aria-labelledby="diffTitle">
   <div class="sheet small">
-    <div class="sheet-head"><h2 id="diffTitle">난이도</h2><button class="x" data-close="diffScrim" aria-label="닫기">×</button></div>
+    <div class="sheet-head"><h2 id="diffTitle">모드</h2><button class="x" data-close="diffScrim" aria-label="닫기">×</button></div>
     <div class="sheet-body"><div class="diff-list" id="diffList"></div></div>
     <div class="sheet-foot"><button class="ghost" data-close="diffScrim">닫기</button></div>
   </div>
@@ -982,7 +987,7 @@ let active=0;
 /* 같은 도시라도 매번 조금씩 다르게: 중심을 화면 폭의 최대 7~11%까지 옮기고, 확대 정도도 ±0.5 안에서 바꾼다 */
 function viewFor(city){
   /* EASY: 확대 정도는 ±0.25 안에서만, 중심은 화면 폭의 3%까지만 옮김 */
-  const easy=(st?st.diff:diff)==="easy";
+  const easy=!!modeOf(st?st.diff:diff).calm;
   const zs=easy?[-0.25,0,0,0.25]:[-0.5,-0.25,0,0.25,0.5];
   const z=city.zoom+zs[Math.floor(Math.random()*zs.length)];
   /* 소도시·많이 확대된 도시는 도심이 작아서 덜 옮김 */
@@ -1015,10 +1020,21 @@ let settings={regions:new Set(ALL_REGIONS),count:20,favOnly:false};
 let mode=store.get("mq-mode","quiz")==="practice"?"practice":"quiz";
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-/* 난이도: easy / normal / hard (예전 HARD 켜기 설정은 hard로 이어받음) */
-const DIFFS=["easy","normal","hard"];
-let diff=store.get("mq-diff",null);if(!DIFFS.includes(diff))diff=store.get("mq-hard",false)===true?"hard":"normal";
-const inDiff=(c,d)=>{d=d||diff;return d==="hard"||(d==="easy"?!!c.easy:!c.hard)};
+/* ---------- 모드 목록 ----------
+   새 모드는 여기에 한 줄 추가하면 팝업에 나와요. group:"special"이면 아래 스페셜 칸에 들어가요.
+   pool: 나올 도시 / calm: 사진이 덜 흔들림 / zoomHint: 세 번째 힌트로 확대·축소 / theme: 화면 테마 / soon: 준비 중(고를 수 없음) */
+const MODES={
+  easy:{label:"EASY",desc:"유명한 도시만 나와요. 사진이 덜 흔들리고, 퀴즈에서는 세 번째 힌트로 지도를 확대·축소할 수 있어요.",pool:c=>!!c.easy,calm:true,zoomHint:true,theme:"easy"},
+  normal:{label:"NORMAL",desc:"기본 모드예요. 세계 곳곳의 대도시와 주요 도시가 나와요.",pool:c=>!c.hard},
+  hard:{label:"HARD",desc:"소도시까지 모두 섞여 나와요. 화면이 야간 정찰 모드로 바뀌어요.",pool:()=>true,theme:"hard"},
+  f1:{label:"F1",group:"special",soon:true},
+  metro:{label:"대도시",group:"special",soon:true},
+  region:{label:"도시권",group:"special",soon:true}
+};
+const modeOf=d=>MODES[d]||MODES.normal;
+/* 예전 HARD 켜기 설정은 hard로 이어받음 */
+let diff=store.get("mq-diff",null);if(!MODES[diff]||MODES[diff].soon)diff=store.get("mq-hard",false)===true?"hard":"normal";
+const inDiff=(c,d)=>{const m=modeOf(d||diff);return m.pool?m.pool(c):false};
 function poolFor(regs,favOnly){const f=favOnly?favs():null;if(favOnly&&!f)favOnly=false;return CITIES.filter(c=>regs.has(c.region)&&inDiff(c)&&(!favOnly||f[c.en]))}
 /* ---------- Favorites ---------- */
 function favs(){const p=profile();if(!p)return null;if(!p.favs)p.favs={};return p.favs}
@@ -1076,7 +1092,7 @@ function startGame(kind,list,opt){
   if(!list.length){openScope();return}
   if(kind!=="practice")mode="quiz";
   st={kind,opt,fav:!!opt.fav,queue:list,idx:0,correct:0,answered:0,hint:0,history:[],busy:false,done:false,hintsUsed:0,revealItem:null,
-      scope:opt.label||(kind==="review"?"복습":scopeLabel(settings.regions)+(settings.favOnly?" ★":"")),hard:diff==="hard",diff,views:[]};
+      scope:opt.label||(kind==="review"?"복습":scopeLabel(settings.regions)+(settings.favOnly?" ★":"")),hard:modeOf(diff).theme==="hard",diff,views:[]};
   document.body.classList.toggle("practice",kind==="practice");document.body.classList.remove("zoomable");setPinch(kind==="practice");
   $("history").innerHTML="";$("reveal").classList.remove("show");
   endReveal();layers.forEach(l=>{l.classList.add("off");clearInline(l)});
@@ -1199,7 +1215,7 @@ function finish(){
   setTimeout(showResult,450);
 }
 /* EASY 퀴즈·복습은 힌트 3개 (세 번째 = 확대·축소). 연습 모드는 원래 확대·축소가 되니 2개 */
-const maxHint=()=>st&&st.diff==="easy"&&st.kind!=="practice"?3:2;
+const maxHint=()=>st&&modeOf(st.diff).zoomHint&&st.kind!=="practice"?3:2;
 function useHint(){
   if(!st||st.busy||st.done||st.hint>=maxHint())return;
   st.hint++;
@@ -1260,7 +1276,7 @@ function confetti(){
   if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
   const c=$("confetti"),ctx=c.getContext("2d"),dpr=window.devicePixelRatio||1,W=innerWidth,H=innerHeight;if(!ctx)return;
   c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
-  const cols=diff==="hard"?["#f2b632","#ffd36b","#e6ebf3","#c98a12","#8fb4ff"]:["#18865f","#e0306a","#2a5bd7","#f2b632","#3fc596","#7aa2ff"];
+  const cols=modeOf(diff).theme==="hard"?["#f2b632","#ffd36b","#e6ebf3","#c98a12","#8fb4ff"]:["#18865f","#e0306a","#2a5bd7","#f2b632","#3fc596","#7aa2ff"];
   const ps=Array.from({length:170},()=>({x:W/2+(Math.random()-.5)*W*.35,y:H*.38,vx:(Math.random()-.5)*15,vy:-Math.random()*15-6,r:Math.random()*Math.PI,vr:(Math.random()-.5)*.3,w:6+Math.random()*6,h:8+Math.random()*9,col:cols[Math.floor(Math.random()*cols.length)]}));
   c.classList.add("on");const t0=performance.now();
   (function frame(t){
@@ -1297,7 +1313,7 @@ function openRecords(keep){
     const g=p.games,tot=g.reduce((a,x)=>a+x.total,0),cor=g.reduce((a,x)=>a+x.correct,0),perfect=g.filter(x=>x.correct===x.total).length;
     html='<div class="stats"><div><b>'+g.length+'</b><span>끝낸 세트</span></div><div><b>'+(tot?Math.round(cor/tot*100)+"%":"–")+'</b><span>평균 정답률</span></div><div><b>'+perfect+'</b><span>전부 맞힌 세트</span></div></div>';
     html+='<h3 class="rec-h">최근 기록</h3>';
-    html+=g.length?'<ul class="rec-list" id="recGames">'+g.slice().reverse().slice(0,recLimit).map(x=>'<li><span>'+fmtDate(x.t)+' <span class="muted">'+esc(x.scope)+'</span>'+(x.hard?'<span class="hard-badge">HARD</span>':x.diff==="easy"?'<span class="easy-badge">EASY</span>':'')+'</span><span class="right"><span class="r'+(x.correct===x.total?" perfect":"")+'">'+x.correct+" / "+x.total+'</span><button class="del" data-del="'+x.t+'" aria-label="이 기록 삭제">삭제</button></span></li>').join("")+'</ul>'+(g.length>recLimit?'<button class="ghost more-btn" id="recMore">더 보기 ('+(g.length-recLimit)+'개 남음)</button>':''):'<p class="muted">아직 끝낸 세트가 없어요. 퀴즈를 한 세트 끝내면 여기에 쌓여요.</p>';
+    html+=g.length?'<ul class="rec-list" id="recGames">'+g.slice().reverse().slice(0,recLimit).map(x=>'<li><span>'+fmtDate(x.t)+' <span class="muted">'+esc(x.scope)+'</span>'+(x.hard?'<span class="hard-badge">HARD</span>':x.diff==="easy"?'<span class="easy-badge">EASY</span>':(x.diff&&x.diff!=="normal"&&MODES[x.diff])?'<span class="mode-badge">'+esc(MODES[x.diff].label)+'</span>':'')+'</span><span class="right"><span class="r'+(x.correct===x.total?" perfect":"")+'">'+x.correct+" / "+x.total+'</span><button class="del" data-del="'+x.t+'" aria-label="이 기록 삭제">삭제</button></span></li>').join("")+'</ul>'+(g.length>recLimit?'<button class="ghost more-btn" id="recMore">더 보기 ('+(g.length-recLimit)+'개 남음)</button>':''):'<p class="muted">아직 끝낸 세트가 없어요. 퀴즈를 한 세트 끝내면 여기에 쌓여요.</p>';
     const fl=Object.entries(favs()).filter(([en])=>CITY_BY_EN[en]).sort((a,b)=>(b[1].t||0)-(a[1].t||0));
     html+='<div class="set-head"><h3 class="rec-h">즐겨찾기 ('+fl.length+')</h3>'+(fl.length?'<button class="toggle-all strong" id="favReview">즐겨찾기 복습</button>':"")+"</div>";
     html+=fl.length?'<ul class="rec-list fav-list">'+fl.slice(0,favLimit).map(([en,f])=>{const c=CITY_BY_EN[en];return '<li><button class="fav-row" data-memo="'+esc(en)+'"><b>'+esc(c.en)+"</b> "+esc(c.ko)+'<span class="memo-prev">'+(f.memo?"📝 "+esc(f.memo):"메모 쓰기")+"</span></button>"+starBtn(en)+"</li>"}).join("")+"</ul>"+(fl.length>favLimit?'<button class="ghost more-btn" id="favMore">더 보기 ('+(fl.length-favLimit)+'개 남음)</button>':""):'<p class="muted">아직 즐겨찾기한 도시가 없어요. 세트 결과 화면이나 연습 모드 정답 화면에서 ☆를 눌러 담아 보세요.</p>';
@@ -1658,17 +1674,20 @@ document.querySelector(".mode").addEventListener("click",e=>{
   setTimeout(newGame,60);
 });
 
-const DIFF_INFO={
-  easy:["EASY","유명한 도시만 나와요. 사진이 덜 흔들리고, 퀴즈에서는 세 번째 힌트로 지도를 확대·축소할 수 있어요."],
-  normal:["NORMAL","기본 난이도예요. 세계 곳곳의 대도시와 주요 도시가 나와요."],
-  hard:["HARD","소도시까지 모두 섞여 나와요. 화면이 야간 정찰 모드로 바뀌어요."]
-};
 function applyHard(){
-  document.body.classList.toggle("hard",diff==="hard");document.body.classList.toggle("easy",diff==="easy");
-  $("diffTxt").textContent=DIFF_INFO[diff][0];
+  const m=modeOf(diff);
+  document.body.classList.toggle("hard",m.theme==="hard");document.body.classList.toggle("easy",m.theme==="easy");
+  document.body.classList.toggle("zoomhint",!!m.zoomHint);
+  $("diffTxt").textContent=m.label;
 }
 function renderDiff(){
-  $("diffList").innerHTML=DIFFS.map(d=>'<button class="diff-opt" data-diff="'+d+'" aria-pressed="'+(d===diff)+'"><b>'+DIFF_INFO[d][0]+"<span>"+CITIES.filter(c=>inDiff(c,d)).length+"곳</span></b><p>"+DIFF_INFO[d][1]+"</p></button>").join("");
+  const ids=Object.keys(MODES),basic=ids.filter(d=>MODES[d].group!=="special"),special=ids.filter(d=>MODES[d].group==="special");
+  const card=d=>{const m=MODES[d];
+    if(m.soon)return '<button class="diff-opt" data-diff="'+d+'" disabled><b>'+esc(m.label)+'</b><span class="soon">준비 중</span></button>';
+    return '<button class="diff-opt" data-diff="'+d+'" aria-pressed="'+(d===diff)+'"><b>'+esc(m.label)+"<span>"+CITIES.filter(c=>inDiff(c,d)).length+"곳</span></b>"+(m.desc?"<p>"+esc(m.desc)+"</p>":"")+"</button>"};
+  let h=basic.map(card).join("");
+  if(special.length)h+='<div class="diff-sec">스페셜</div><div class="diff-grid">'+special.map(card).join("")+"</div>";
+  $("diffList").innerHTML=h;
 }
 $("hardBtn").onclick=()=>{renderDiff();openM("diffScrim")};
 /* 고르면 바로 바뀌고 팝업은 열린 채로 둠 (닫기는 따로).
@@ -1676,10 +1695,11 @@ $("hardBtn").onclick=()=>{renderDiff();openM("diffScrim")};
 $("diffList").addEventListener("click",e=>{
   const b=e.target.closest("[data-diff]");if(!b)return;
   const d=b.dataset.diff;if(d===diff)return;
-  const big=d==="hard"||diff==="hard";
+  if(!MODES[d]||MODES[d].soon)return;
+  const big=modeOf(d).theme==="hard"||modeOf(diff).theme==="hard";
   diff=d;store.set("mq-diff",diff);
   const run=()=>{
-    $("diffList").querySelectorAll("[data-diff]").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.diff===diff)));
+    $("diffList").querySelectorAll("[data-diff]:not(:disabled)").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.diff===diff)));
     applyHard();newGame();
     if(fine())b.focus();
   };
