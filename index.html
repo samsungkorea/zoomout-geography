@@ -19,7 +19,7 @@
 <meta name="copyright" content="© 2026 samsungkorea. All rights reserved.">
 <meta name="description" content="라벨 없는 위성 사진으로 도시를 맞혀 보세요. 전 세계 771개 도시 퀴즈.">
 <link rel="canonical" href="https://samsungkorea.github.io/satellite-quiz/">
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"ZoomOut Geography","alternateName":"ZoomOut Geo","url":"https://samsungkorea.github.io/satellite-quiz/","description":"라벨 없는 위성 사진을 보고 전 세계 도시를 맞히며 외우는 지리 퀴즈. 연습 모드, 복습, 즐겨찾기, HARD 모드 지원.","applicationCategory":"EducationalApplication","operatingSystem":"Any","inLanguage":"ko","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"ZoomOut Geography","alternateName":"ZoomOut Geo","url":"https://samsungkorea.github.io/satellite-quiz/","description":"라벨 없는 위성 사진을 보고 전 세계 도시를 맞히며 외우는 지리 퀴즈. 연습 모드, 복습, 즐겨찾기, EASY·HARD 난이도 지원.","applicationCategory":"EducationalApplication","operatingSystem":"Any","inLanguage":"ko","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"}}</script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="ZoomOut Geography">
 <meta property="og:title" content="ZoomOut Geography — 위성 사진 도시 퀴즈">
@@ -32,6 +32,10 @@
 <link rel="icon" type="image/png" href="favicon.png?v=2">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
 <meta name="apple-mobile-web-app-title" content="ZoomOut Geo">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#e9eef2" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f161c" media="(prefers-color-scheme: dark)">
 <script>try{var t=JSON.parse(localStorage.getItem("mq-theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}</script>
@@ -104,7 +108,11 @@ body.practice .map-layer:not(.off){pointer-events:auto}
 /* 숨은 지도는 페이드가 끝나면 아예 그리지 않음 (사진은 계속 미리 불러옴) */
 .map-layer.off{opacity:0;filter:blur(12px);transform:scale(1.05);visibility:hidden;transition:opacity .7s ease,filter .7s ease,transform 1.1s cubic-bezier(.2,.7,.2,1),visibility 0s linear .75s}
 .map-layer .leaflet-container{width:100%;height:100%;background:var(--map-bg)}
-.leaflet-control-attribution{font-size:10px!important;background:rgba(0,0,0,.45)!important;color:#d8dee3!important;pointer-events:none}
+.leaflet-control-attribution{font-size:9px!important;line-height:1.6!important;padding:0 5px!important;background:rgba(0,0,0,.35)!important;color:#d8dee3!important;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.leaflet-control-attribution:not(.open){white-space:nowrap}
+.leaflet-control-attribution .src{display:none}
+.leaflet-control-attribution.open .src{display:inline}
+.leaflet-control-attribution.open{width:min(300px,60vw)}
 .leaflet-control-attribution a{color:#d8dee3!important}
 .tick{position:absolute;width:22px;height:22px;border-color:var(--ink);border-style:solid;border-width:0;z-index:5;pointer-events:none}
 .tick.tl{top:-8px;left:-8px;border-top-width:2px;border-left-width:2px}
@@ -318,6 +326,21 @@ body.hard .mode-pill{background:var(--amber)}
 body.hard .primary{background:var(--amber);border-color:var(--amber);color:#0b1322}
 body.hard .chip[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:#0b1322}
 body.hard .map-box{box-shadow:0 0 0 1px rgba(242,182,50,.35),0 0 40px rgba(242,182,50,.08)}
+.hard-btn .cv{display:inline-block;margin-left:5px;font-size:.7em;vertical-align:.12em}
+body.easy .hard-btn{border-color:var(--ok);color:var(--ok)}
+.easy-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:4px;background:var(--ok);color:#fff;font-size:11px;font-weight:700;letter-spacing:.05em;vertical-align:1px}
+.diff-list{display:flex;flex-direction:column;gap:10px}
+.diff-opt{display:block;width:100%;text-align:left;border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;padding:12px 14px;font:inherit;cursor:pointer;transition:border-color .2s,background .2s}
+.diff-opt b{font-family:var(--display);font-size:17px;letter-spacing:.04em}
+.diff-opt b span{margin-left:8px;font-family:inherit;font-size:13px;font-weight:500;letter-spacing:0;color:var(--muted)}
+.diff-opt p{margin:4px 0 0;font-size:14px;line-height:1.45;color:var(--muted)}
+.diff-opt[aria-pressed="true"]{border-color:var(--ink);background:var(--bg)}
+.diff-opt[data-diff="easy"][aria-pressed="true"]{border-color:var(--ok)}
+.diff-opt[data-diff="hard"][aria-pressed="true"]{border-color:var(--amber)}
+.dots i.d3{display:none}
+body.easy:not(.practice) .dots i.d3{display:inline-block}
+body.zoomable .zoomctl{display:flex}
+body.zoomable .map-layer:not(.off){pointer-events:auto}
 .hard-badge{display:inline-block;margin-left:6px;padding:0 6px;border-radius:4px;background:#f2b632;color:#0b1322;font-size:11px;font-weight:700;letter-spacing:.05em;vertical-align:1px}
 .hard-cele .result-big{color:#f2b632}
 /* 테마를 바꾸는 순간에는 모든 전환 효과를 끔 (휴대폰 렉 방지) */
@@ -375,7 +398,7 @@ html.vt-circle::view-transition-new(root){z-index:2}
         <span class="mode-pill no-anim" id="modePill" aria-hidden="true"></span>
         <button data-mode="quiz" aria-pressed="true">Quiz</button><button data-mode="practice" aria-pressed="false">Practice</button>
       </div>
-      <button class="hard-btn" id="hardBtn" aria-pressed="false" title="소도시까지 나오는 HARD 모드">HARD</button>
+      <button class="hard-btn" id="hardBtn" aria-haspopup="dialog" title="난이도 고르기"><span id="diffTxt">NORMAL</span><span class="cv" aria-hidden="true">▾</span></button>
     </div>
     <div class="qnum" id="qnum">#1<small>/ 20</small></div>
   </header>
@@ -418,7 +441,7 @@ html.vt-circle::view-transition-new(root){z-index:2}
     <div class="right-actions">
       <button class="link" id="listBtn" title="Alt + L">List</button>
       <button class="link" id="passBtn" title="Alt + P">Pass</button>
-      <button class="link" id="hintBtn" title="Alt + H">Hint<span class="dots"><i></i><i></i></span></button>
+      <button class="link" id="hintBtn" title="Alt + H">Hint<span class="dots"><i></i><i></i><i class="d3"></i></span></button>
     </div>
   </footer>
 </div>
@@ -513,10 +536,10 @@ html.vt-circle::view-transition-new(root){z-index:2}
         <ol>
           <li>라벨 없는 위성 사진이 한 장 나와요. 퀴즈 모드에서는 지도가 움직이지 않아요.</li>
           <li>어느 도시인지 영어나 한글로 입력하고 Enter를 누르세요. 악센트와 한두 글자 오타, LA·NYC 같은 약칭도 인정해요.</li>
-          <li>막히면 Hint를 누르세요. 첫 번째는 나라, 두 번째는 첫 글자를 알려줘요.</li>
+          <li>막히면 Hint를 누르세요. 첫 번째는 나라, 두 번째는 첫 글자를 알려줘요. EASY 퀴즈에서는 세 번째 힌트로 지도를 확대·축소할 수 있어요.</li>
           <li>키보드 단축키: Alt+H 힌트, Alt+P 패스(연습에선 정답 보기), Alt+L 도시 목록(연습). 맥은 Option 키를 쓰면 돼요.</li>
           <li>Practice 모드는 문제 수 제한이 없고, 두 손가락으로 지도를 벌리거나 오므려 확대·축소할 수 있어요. List를 누르면 범위 안의 도시 목록이 나오고, 도시를 누르면 그 위성 사진을 둘러볼 수 있어요.</li>
-          <li>제목 옆 HARD를 켜면 소도시 402곳이 더해져서, 지금 도시와 함께 섞여 나와요.</li>
+          <li>제목 옆 난이도 버튼으로 EASY, NORMAL, HARD를 고를 수 있어요. EASY는 유명한 도시만 나오고 사진도 덜 흔들려요. HARD는 소도시 402곳이 더해져 함께 섞여 나와요.</li>
           <li>한 세트가 끝나면 틀린 도시만 골라 복습할 수 있어요. 로그인하면 Records에 결과가 쌓여요.</li>
           <li>세트 결과 화면이나 Practice 정답 화면에서 ☆를 눌러 즐겨찾기에 담고 메모를 남길 수 있어요. Records에서 즐겨찾기만 복습하거나, 출제 범위에서 "즐겨찾기만"을 켤 수 있어요. 퀴즈 중에는 즐겨찾기 표시가 나오지 않아요.</li>
         </ol>
@@ -581,6 +604,15 @@ html.vt-circle::view-transition-new(root){z-index:2}
       <textarea class="memo-input" id="memoText" maxlength="120" rows="3" placeholder="예: 강이 S자로 크게 휘어 흐름"></textarea>
     </div>
     <div class="sheet-foot"><button class="ghost" data-close="memoScrim">취소</button><button class="primary" id="memoSave">저장</button></div>
+  </div>
+</div>
+
+<!-- Difficulty -->
+<div class="scrim" id="diffScrim" role="dialog" aria-modal="true" aria-labelledby="diffTitle">
+  <div class="sheet small">
+    <div class="sheet-head"><h2 id="diffTitle">난이도</h2><button class="x" data-close="diffScrim" aria-label="닫기">×</button></div>
+    <div class="sheet-body"><div class="diff-list" id="diffList"></div></div>
+    <div class="sheet-foot"><button class="ghost" data-close="diffScrim">닫기</button></div>
   </div>
 </div>
 
@@ -801,6 +833,15 @@ const EXTRA_ALIASES={
 };
 CITIES.forEach(c=>{const x=EXTRA_ALIASES[c.en];if(x)x.split("|").forEach(a=>{if(!c.aliases.includes(a))c.aliases.push(a)})});
 const CITY_BY_EN={};CITIES.forEach(c=>CITY_BY_EN[c.en]=c);
+/* ---------- EASY 모드 도시 (이름이 익숙하고 사진에서 특징이 잘 보이는 곳) ---------- */
+const EASY_KO=["서울","부산","도쿄","오사카","교토","베이징","상하이","홍콩","타이베이",
+"방콕","하노이","호찌민","다낭","싱가포르","쿠알라룸푸르","마닐라","세부",
+"뉴델리","뭄바이","두바이","이스탄불",
+"런던","파리","로마","베네치아","피렌체","바르셀로나","마드리드","암스테르담","베를린","프라하","빈","부다페스트","아테네","산토리니","모스크바","리스본","모나코",
+"카이로","케이프타운",
+"뉴욕","로스앤젤레스","샌프란시스코","시카고","라스베이거스","마이애미","호놀룰루","워싱턴 D.C.","토론토","밴쿠버","칸쿤",
+"멕시코시티","리우데자네이루","부에노스아이레스","시드니","멜버른","오클랜드"];
+EASY_KO.forEach(k=>{const c=CITIES.find(x=>x.ko===k&&!x.hard);if(c)c.easy=true});
 
 /* ---------- Storage ---------- */
 const store={
@@ -897,8 +938,10 @@ const ZOOM_HANDLERS=["touchZoom","scrollWheelZoom","doubleClickZoom"];
 function setPinch(on){allMaps.forEach(m=>ZOOM_HANDLERS.forEach(h=>on?m[h].enable():m[h].disable()))}
 function makeMap(el){
   const m=L.map(el,{dragging:false,touchZoom:"center",scrollWheelZoom:"center",doubleClickZoom:"center",boxZoom:false,keyboard:false,zoomControl:false,zoomSnap:0.25,inertia:false,fadeAnimation:true});
-  L.tileLayer(ESRI,{maxZoom:19,maxNativeZoom:19,detectRetina:true,attribution:"Powered by Esri · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community"}).addTo(m);
+  L.tileLayer(ESRI,{maxZoom:19,maxNativeZoom:19,detectRetina:true,attribution:'Powered by Esri<span class="src"> · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community</span>'}).addTo(m);
   m.attributionControl.setPrefix(false);
+  { const at=m.attributionControl.getContainer(); at.title="Powered by Esri · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community";
+    L.DomEvent.disableClickPropagation(at); at.addEventListener("click",()=>at.classList.toggle("open")); }
   m.setView([20,0],2,{animate:false});
   ZOOM_HANDLERS.forEach(h=>m[h].disable());
   return m;
@@ -938,9 +981,12 @@ function endReveal(){
 let active=0;
 /* 같은 도시라도 매번 조금씩 다르게: 중심을 화면 폭의 최대 7~11%까지 옮기고, 확대 정도도 ±0.5 안에서 바꾼다 */
 function viewFor(city){
-  const z=city.zoom+[-0.5,-0.25,0,0.25,0.5][Math.floor(Math.random()*5)];
+  /* EASY: 확대 정도는 ±0.25 안에서만, 중심은 화면 폭의 3%까지만 옮김 */
+  const easy=(st?st.diff:diff)==="easy";
+  const zs=easy?[-0.25,0,0,0.25]:[-0.5,-0.25,0,0.25,0.5];
+  const z=city.zoom+zs[Math.floor(Math.random()*zs.length)];
   /* 소도시·많이 확대된 도시는 도심이 작아서 덜 옮김 */
-  const W=$("mapBox").clientWidth||600,off=W*((city.hard||city.zoom>=13)?0.07:0.11);
+  const W=$("mapBox").clientWidth||600,off=W*(easy?0.03:(city.hard||city.zoom>=13)?0.07:0.11);
   const pt=L.CRS.EPSG3857.latLngToPoint(L.latLng(city.lat,city.lng),z).add(L.point((Math.random()*2-1)*off,(Math.random()*2-1)*off));
   const ll=L.CRS.EPSG3857.pointToLatLng(pt,z);
   return{lat:ll.lat,lng:ll.lng,zoom:z};
@@ -969,8 +1015,11 @@ let settings={regions:new Set(ALL_REGIONS),count:20,favOnly:false};
 let mode=store.get("mq-mode","quiz")==="practice"?"practice":"quiz";
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-let hardOn=store.get("mq-hard",false)===true;
-function poolFor(regs,favOnly){const f=favOnly?favs():null;if(favOnly&&!f)favOnly=false;return CITIES.filter(c=>regs.has(c.region)&&(hardOn||!c.hard)&&(!favOnly||f[c.en]))}
+/* 난이도: easy / normal / hard (예전 HARD 켜기 설정은 hard로 이어받음) */
+const DIFFS=["easy","normal","hard"];
+let diff=store.get("mq-diff",null);if(!DIFFS.includes(diff))diff=store.get("mq-hard",false)===true?"hard":"normal";
+const inDiff=(c,d)=>{d=d||diff;return d==="hard"||(d==="easy"?!!c.easy:!c.hard)};
+function poolFor(regs,favOnly){const f=favOnly?favs():null;if(favOnly&&!f)favOnly=false;return CITIES.filter(c=>regs.has(c.region)&&inDiff(c)&&(!favOnly||f[c.en]))}
 /* ---------- Favorites ---------- */
 function favs(){const p=profile();if(!p)return null;if(!p.favs)p.favs={};return p.favs}
 function favOf(en){const f=favs();return f?f[en]||null:null}
@@ -1027,8 +1076,8 @@ function startGame(kind,list,opt){
   if(!list.length){openScope();return}
   if(kind!=="practice")mode="quiz";
   st={kind,opt,fav:!!opt.fav,queue:list,idx:0,correct:0,answered:0,hint:0,history:[],busy:false,done:false,hintsUsed:0,revealItem:null,
-      scope:opt.label||(kind==="review"?"복습":scopeLabel(settings.regions)+(settings.favOnly?" ★":"")),hard:hardOn,views:[]};
-  document.body.classList.toggle("practice",kind==="practice");setPinch(kind==="practice");
+      scope:opt.label||(kind==="review"?"복습":scopeLabel(settings.regions)+(settings.favOnly?" ★":"")),hard:diff==="hard",diff,views:[]};
+  document.body.classList.toggle("practice",kind==="practice");document.body.classList.remove("zoomable");setPinch(kind==="practice");
   $("history").innerHTML="";$("reveal").classList.remove("show");
   endReveal();layers.forEach(l=>{l.classList.add("off");clearInline(l)});
   active=0;place(0,0);place(1,1);
@@ -1058,8 +1107,9 @@ function renderHint(){
   const c=st.queue[st.idx],box=$("hintLine");box.innerHTML="";
   if(c&&st.hint>=1)box.insertAdjacentHTML("beforeend","<div>나라 <b>"+esc(c.cEn)+"</b> · "+esc(c.cKo)+"</div>");
   if(c&&st.hint>=2)box.insertAdjacentHTML("beforeend","<div>첫 글자 <b>"+esc(c.en[0])+"…</b> · <b>"+choseong(c.ko[0])+"…</b> ("+c.en.length+"글자)</div>");
+  if(c&&st.hint>=3)box.insertAdjacentHTML("beforeend","<div>이제 지도를 <b>확대·축소</b>할 수 있어요</div>");
   document.querySelectorAll("#hintBtn .dots i").forEach((d,i)=>d.classList.toggle("on",i<st.hint));
-  $("hintBtn").disabled=st.hint>=2||st.busy||st.done;
+  $("hintBtn").disabled=st.hint>=maxHint()||st.busy||st.done;
 }
 function resetInput(clear){
   $("answerBox").classList.remove("ok","bad");
@@ -1119,6 +1169,7 @@ function advance(){
   clearTimeout(revealTimer);
   if(!st||!st.busy)return;
   st.busy=false;st.idx++;st.hint=0;
+  if(document.body.classList.contains("zoomable")){document.body.classList.remove("zoomable");setPinch(st.kind==="practice")}
   $("reveal").classList.remove("show");
   if(st.kind==="practice"&&st.idx+2>=st.queue.length)st.queue=st.queue.concat(shuffle(poolFor(settings.regions,settings.favOnly).slice()));
   if(st.idx>=st.queue.length){finish();return}
@@ -1141,13 +1192,20 @@ function finish(){
   renderTop();renderHint();$("passBtn").disabled=true;
   const p=profile();
   if(p){
-    p.games.push({t:Date.now(),kind:st.kind,scope:st.scope,hard:!!st.hard,total:st.queue.length,correct:st.correct,hints:st.hintsUsed,missed:st.history.filter(h=>!h.ok).map(h=>h.city.en),all:st.history.map(h=>h.city.en)});
+    p.games.push({t:Date.now(),kind:st.kind,scope:st.scope,hard:!!st.hard,diff:st.diff||(st.hard?"hard":"normal"),total:st.queue.length,correct:st.correct,hints:st.hintsUsed,missed:st.history.filter(h=>!h.ok).map(h=>h.city.en),all:st.history.map(h=>h.city.en)});
     if(p.games.length>200)p.games=p.games.slice(-200);
     saveUsers();
   }
   setTimeout(showResult,450);
 }
-function useHint(){if(!st||st.busy||st.done||st.hint>=2)return;st.hint++;renderHint();if(fine())$("answer").focus()}
+/* EASY 퀴즈·복습은 힌트 3개 (세 번째 = 확대·축소). 연습 모드는 원래 확대·축소가 되니 2개 */
+const maxHint=()=>st&&st.diff==="easy"&&st.kind!=="practice"?3:2;
+function useHint(){
+  if(!st||st.busy||st.done||st.hint>=maxHint())return;
+  st.hint++;
+  if(st.hint===3){document.body.classList.add("zoomable");setPinch(true)}
+  renderHint();if(fine())$("answer").focus();
+}
 
 /* ---------- Result ---------- */
 function showResult(){
@@ -1202,7 +1260,7 @@ function confetti(){
   if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
   const c=$("confetti"),ctx=c.getContext("2d"),dpr=window.devicePixelRatio||1,W=innerWidth,H=innerHeight;if(!ctx)return;
   c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
-  const cols=hardOn?["#f2b632","#ffd36b","#e6ebf3","#c98a12","#8fb4ff"]:["#18865f","#e0306a","#2a5bd7","#f2b632","#3fc596","#7aa2ff"];
+  const cols=diff==="hard"?["#f2b632","#ffd36b","#e6ebf3","#c98a12","#8fb4ff"]:["#18865f","#e0306a","#2a5bd7","#f2b632","#3fc596","#7aa2ff"];
   const ps=Array.from({length:170},()=>({x:W/2+(Math.random()-.5)*W*.35,y:H*.38,vx:(Math.random()-.5)*15,vy:-Math.random()*15-6,r:Math.random()*Math.PI,vr:(Math.random()-.5)*.3,w:6+Math.random()*6,h:8+Math.random()*9,col:cols[Math.floor(Math.random()*cols.length)]}));
   c.classList.add("on");const t0=performance.now();
   (function frame(t){
@@ -1239,7 +1297,7 @@ function openRecords(keep){
     const g=p.games,tot=g.reduce((a,x)=>a+x.total,0),cor=g.reduce((a,x)=>a+x.correct,0),perfect=g.filter(x=>x.correct===x.total).length;
     html='<div class="stats"><div><b>'+g.length+'</b><span>끝낸 세트</span></div><div><b>'+(tot?Math.round(cor/tot*100)+"%":"–")+'</b><span>평균 정답률</span></div><div><b>'+perfect+'</b><span>전부 맞힌 세트</span></div></div>';
     html+='<h3 class="rec-h">최근 기록</h3>';
-    html+=g.length?'<ul class="rec-list" id="recGames">'+g.slice().reverse().slice(0,recLimit).map(x=>'<li><span>'+fmtDate(x.t)+' <span class="muted">'+esc(x.scope)+'</span>'+(x.hard?'<span class="hard-badge">HARD</span>':'')+'</span><span class="right"><span class="r'+(x.correct===x.total?" perfect":"")+'">'+x.correct+" / "+x.total+'</span><button class="del" data-del="'+x.t+'" aria-label="이 기록 삭제">삭제</button></span></li>').join("")+'</ul>'+(g.length>recLimit?'<button class="ghost more-btn" id="recMore">더 보기 ('+(g.length-recLimit)+'개 남음)</button>':''):'<p class="muted">아직 끝낸 세트가 없어요. 퀴즈를 한 세트 끝내면 여기에 쌓여요.</p>';
+    html+=g.length?'<ul class="rec-list" id="recGames">'+g.slice().reverse().slice(0,recLimit).map(x=>'<li><span>'+fmtDate(x.t)+' <span class="muted">'+esc(x.scope)+'</span>'+(x.hard?'<span class="hard-badge">HARD</span>':x.diff==="easy"?'<span class="easy-badge">EASY</span>':'')+'</span><span class="right"><span class="r'+(x.correct===x.total?" perfect":"")+'">'+x.correct+" / "+x.total+'</span><button class="del" data-del="'+x.t+'" aria-label="이 기록 삭제">삭제</button></span></li>').join("")+'</ul>'+(g.length>recLimit?'<button class="ghost more-btn" id="recMore">더 보기 ('+(g.length-recLimit)+'개 남음)</button>':''):'<p class="muted">아직 끝낸 세트가 없어요. 퀴즈를 한 세트 끝내면 여기에 쌓여요.</p>';
     const fl=Object.entries(favs()).filter(([en])=>CITY_BY_EN[en]).sort((a,b)=>(b[1].t||0)-(a[1].t||0));
     html+='<div class="set-head"><h3 class="rec-h">즐겨찾기 ('+fl.length+')</h3>'+(fl.length?'<button class="toggle-all strong" id="favReview">즐겨찾기 복습</button>':"")+"</div>";
     html+=fl.length?'<ul class="rec-list fav-list">'+fl.slice(0,favLimit).map(([en,f])=>{const c=CITY_BY_EN[en];return '<li><button class="fav-row" data-memo="'+esc(en)+'"><b>'+esc(c.en)+"</b> "+esc(c.ko)+'<span class="memo-prev">'+(f.memo?"📝 "+esc(f.memo):"메모 쓰기")+"</span></button>"+starBtn(en)+"</li>"}).join("")+"</ul>"+(fl.length>favLimit?'<button class="ghost more-btn" id="favMore">더 보기 ('+(fl.length-favLimit)+'개 남음)</button>':""):'<p class="muted">아직 즐겨찾기한 도시가 없어요. 세트 결과 화면이나 연습 모드 정답 화면에서 ☆를 눌러 담아 보세요.</p>';
@@ -1422,7 +1480,7 @@ function renderSheet(){
     const g=document.createElement("div");g.className="group";
     const allOn=c.regions.every(([id])=>draft.regions.has(id));
     g.innerHTML='<div class="group-head"><h3>'+c.name+'</h3><button class="toggle-all" data-cont="'+c.id+'">'+(allOn?"빼기":"모두 넣기")+'</button></div><div class="chips">'+
-      c.regions.map(([id,nm])=>'<button class="chip" data-reg="'+id+'" aria-pressed="'+draft.regions.has(id)+'">'+nm+"<span>"+CITIES.filter(x=>x.region===id&&(hardOn||!x.hard)).length+"</span></button>").join("")+"</div>";
+      c.regions.map(([id,nm])=>'<button class="chip" data-reg="'+id+'" aria-pressed="'+draft.regions.has(id)+'">'+nm+"<span>"+CITIES.filter(x=>x.region===id&&inDiff(x)).length+"</span></button>").join("")+"</div>";
     box.appendChild(g);
   });
   const fc=me?Object.keys(favs()).filter(en=>CITY_BY_EN[en]).length:0;
@@ -1600,8 +1658,33 @@ document.querySelector(".mode").addEventListener("click",e=>{
   setTimeout(newGame,60);
 });
 
-function applyHard(){document.body.classList.toggle("hard",hardOn);$("hardBtn").setAttribute("aria-pressed",String(hardOn))}
-$("hardBtn").onclick=()=>{hardOn=!hardOn;store.set("mq-hard",hardOn);quietSwitch(()=>{applyHard();newGame()},$("hardBtn"));};
+const DIFF_INFO={
+  easy:["EASY","유명한 도시만 나와요. 사진이 덜 흔들리고, 퀴즈에서는 세 번째 힌트로 지도를 확대·축소할 수 있어요."],
+  normal:["NORMAL","기본 난이도예요. 세계 곳곳의 대도시와 주요 도시가 나와요."],
+  hard:["HARD","소도시까지 모두 섞여 나와요. 화면이 야간 정찰 모드로 바뀌어요."]
+};
+function applyHard(){
+  document.body.classList.toggle("hard",diff==="hard");document.body.classList.toggle("easy",diff==="easy");
+  $("diffTxt").textContent=DIFF_INFO[diff][0];
+}
+function renderDiff(){
+  $("diffList").innerHTML=DIFFS.map(d=>'<button class="diff-opt" data-diff="'+d+'" aria-pressed="'+(d===diff)+'"><b>'+DIFF_INFO[d][0]+"<span>"+CITIES.filter(c=>inDiff(c,d)).length+"곳</span></b><p>"+DIFF_INFO[d][1]+"</p></button>").join("");
+}
+$("hardBtn").onclick=()=>{renderDiff();openM("diffScrim")};
+/* 고르면 바로 바뀌고 팝업은 열린 채로 둠 (닫기는 따로).
+   HARD로 들어가거나 나올 때만 누른 카드에서 원이 퍼지고, EASY↔NORMAL은 조용히 바뀜 */
+$("diffList").addEventListener("click",e=>{
+  const b=e.target.closest("[data-diff]");if(!b)return;
+  const d=b.dataset.diff;if(d===diff)return;
+  const big=d==="hard"||diff==="hard";
+  diff=d;store.set("mq-diff",diff);
+  const run=()=>{
+    $("diffList").querySelectorAll("[data-diff]").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.diff===diff)));
+    applyHard();newGame();
+    if(fine())b.focus();
+  };
+  if(big)quietSwitch(run,b);else run();
+});
 $("hardBtn").addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()});
 applyHard();
 /* ---------- ZoomOut 제목: 돋보기 글자 + 누르면 줌아웃 ---------- */
@@ -1702,6 +1785,10 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(snapPill);
 new ResizeObserver(snapPill).observe(document.querySelector(".mode"));
 layout();
 initAuth();
+/* ---------- 홈 화면 앱 (PWA) ---------- */
+if("serviceWorker" in navigator&&location.protocol==="https:"){
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})});
+}
 </script>
 </body>
 </html>
