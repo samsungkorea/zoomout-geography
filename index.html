@@ -425,6 +425,18 @@ html.vt-circle::view-transition-new(root){z-index:2}
 html.android .map-layer.off{filter:none}
 html.android .scrim{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(8,14,20,.55)}
 
+/* ---------- 하단 버튼: 보이는 배치는 그대로, 누르는 영역만 넓게 ----------
+   글자 사이 간격(--lg)은 왼쪽·오른쪽 묶음 모두 같게. 각 버튼의 투명 여백이 간격의 절반씩 뻗어 나가
+   이웃 버튼과 딱 맞닿고, 위아래로는 약 44px 높이가 되게 함 (음수 여백으로 배치는 안 바뀜) */
+:root{--lg:clamp(14px,2vw,20px)}
+.left-actions,.right-actions{gap:var(--lg)}
+footer .link{padding:13px calc(var(--lg) / 2 + 2px);margin:-7px calc(var(--lg) / -2)}
+@media (max-width:700px) and (max-aspect-ratio:1/1){
+  /* 휴대폰: 화면 폭에 맞춰 10~18px. 좁은 폰(카톡 브라우저 등)에서도 한 줄에 들어가게 */
+  :root{--lg:clamp(10px,(100vw - 320px) / 4,18px)}
+  .left-actions,.right-actions{gap:var(--lg)}
+}
+
 /* 기록 목록의 가장자리 흐림은 내용이 넘칠 때만 (안내 문구·첫 항목 왼쪽이 잘려 보이던 문제) */
 .history:not(.over),#history:not(.over){mask-image:none;-webkit-mask-image:none}
 
@@ -1226,7 +1238,7 @@ function recordCity(city,ok){
 function answer(passed,auto){
   if(!st||st.done)return;
   if(browsing){exitBrowse();return}
-  if(st.busy){if(st.autoAt&&performance.now()-st.autoAt<350)return;advance();return}
+  if(st.busy){advance();return}
   const inp=$("answer"),val=inp.value.trim(),city=st.queue[st.idx];
   if(!passed&&!val){const b=$("answerBox");b.classList.remove("shake");void b.offsetWidth;b.classList.add("shake");return}
   const ok=!passed&&isCorrect(val,city);
