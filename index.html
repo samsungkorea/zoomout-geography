@@ -262,6 +262,8 @@ footer .right-actions{justify-self:end}
 .stats div{border:1.5px solid var(--line);border-radius:8px;padding:10px 12px}
 .stats b{display:block;font-family:var(--display);font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
 .stats span{font-size:13px;color:var(--muted)}
+.stats b small{font-size:15px;font-weight:600;color:var(--muted)}
+.stats b.txt{font-size:20px;line-height:1.4;word-break:keep-all;overflow-wrap:anywhere}
 .rec-h{font-size:16px;margin:18px 0 8px}
 .rec-list{list-style:none;padding:0;margin:0;display:grid;gap:4px}
 .rec-list li{display:flex;justify-content:space-between;gap:12px;font-size:15px;padding:6px 0;border-bottom:1px solid var(--line)}
@@ -271,6 +273,17 @@ footer .right-actions{justify-self:end}
 .del{flex:none;border:0;background:none;color:var(--muted);font-size:14px;padding:2px 6px;border-radius:4px}
 .del:hover{color:var(--bad);background:var(--bad-soft)}
 .rec-list .right{display:flex;align-items:center;gap:10px}
+.rec-list li.has-detail{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.rd-chev{display:inline-block;width:14px;margin-right:4px;color:var(--muted);font-size:12px;transition:transform .25s var(--e-out)}
+.rec-list li.has-detail.open .rd-chev{transform:rotate(90deg)}
+.rec-list li.rec-detail{display:block;padding:4px 0 12px}
+.rec-list li.rec-detail[hidden]{display:none}
+.rd-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.rd{font-size:13px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink);white-space:nowrap}
+.rd small{color:var(--muted)}
+.rd.bad{border-color:var(--bad);color:var(--bad)}
+.rd-retry{margin-top:10px}
+.rd-perfect{margin:8px 0 0;font-size:13px}
 .danger{border:1.5px solid var(--bad);background:var(--bad);color:#fff;border-radius:8px;padding:10px 18px;font-weight:700;font-size:16px}
 .del-all{margin-top:14px;color:var(--bad)}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:15px;max-width:min(92vw,520px);z-index:7000;opacity:0;pointer-events:none;transition:opacity .3s var(--e-out),transform .4s var(--e-out)}
@@ -975,7 +988,7 @@ async function fetchLegacy(id){
   return parseDoc(await r.json());
 }
 async function pushRemote(id,p){
-  p.cities={};const data=JSON.stringify({games:p.games,cities:{},favs:p.favs||{},created:p.created,migrated:p.migrated||[],migrateAsked:!!p.migrateAsked,nick:p.nick||""});
+  p.cities={};const data=JSON.stringify({games:p.games,cities:{},stats:p.stats||null,favs:p.favs||{},created:p.created,migrated:p.migrated||[],migrateAsked:!!p.migrateAsked,nick:p.nick||""});
   const r=await fetch(docUrl(id),{method:"PATCH",headers:Object.assign({"Content-Type":"application/json"},await authHeaders()),body:JSON.stringify({fields:{data:{stringValue:data},updatedAt:{timestampValue:new Date().toISOString()}}})});
   if(!r.ok)throw new Error("HTTP "+r.status);
 }
@@ -1004,7 +1017,7 @@ function mergeLegacy(remote,local){
   const byT={};(remote.games||[]).forEach(g=>byT[g.t]=g);(local.games||[]).forEach(g=>byT[g.t]=g);
   const cities=JSON.parse(JSON.stringify(remote.cities||{}));
   Object.entries(local.cities||{}).forEach(([en,s])=>{const r=cities[en]||{s:0,c:0};r.s+=s.s;r.c+=s.c;cities[en]=r});
-  return{games:Object.values(byT).sort((a,b)=>a.t-b.t).slice(-200),cities,favs:Object.assign({},remote.favs||{},local.favs||{}),migrated:[...new Set([...(remote.migrated||[]),...(local.migrated||[])])],migrateAsked:!!(remote.migrateAsked||local.migrateAsked),nick:local.nick||remote.nick||"",created:Math.min(remote.created||Date.now(),local.created||Date.now())};
+  return{games:Object.values(byT).sort((a,b)=>a.t-b.t).slice(-200),cities,stats:mergeStats(remote.stats,local.stats),favs:Object.assign({},remote.favs||{},local.favs||{}),migrated:[...new Set([...(remote.migrated||[]),...(local.migrated||[])])],migrateAsked:!!(remote.migrateAsked||local.migrateAsked),nick:local.nick||remote.nick||"",created:Math.min(remote.created||Date.now(),local.created||Date.now())};
 }
 /* 서버 기록과 이 기기 기록을 합쳐 최신 상태를 만든다 */
 function reconcile(id,remote){
@@ -1012,7 +1025,7 @@ function reconcile(id,remote){
   if(remote===null){const p=local||{games:[],cities:{},created:Date.now()};p.pending=true;return p}
   if(local&&!local.syncedAt){const m=mergeLegacy(remote,local);m.pending=true;return m}
   if(local&&local.pending)return local;
-  return{games:remote.games||[],cities:remote.cities||{},favs:remote.favs||{},migrated:remote.migrated||[],migrateAsked:!!remote.migrateAsked,nick:remote.nick||"",created:remote.created||Date.now(),syncedAt:Date.now(),pending:false,info:local&&local.info};
+  return{games:remote.games||[],cities:remote.cities||{},stats:remote.stats||null,favs:remote.favs||{},migrated:remote.migrated||[],migrateAsked:!!remote.migrateAsked,nick:remote.nick||"",created:remote.created||Date.now(),syncedAt:Date.now(),pending:false,info:local&&local.info};
 }
 async function refreshFromServer(){
   const id=me;if(!id)return;
@@ -1231,9 +1244,32 @@ function resetInput(clear){
   $("passBtn").disabled=false;
   if(fine())inp.focus();
 }
+/* ---------- 누적 통계 ----------
+   세트 목록은 용량 때문에 최근 200개만 보관하지만, 이 숫자들은 따로 끝없이 셈.
+   ci: 도시별 [출제 수, 맞힌 수] (퀴즈·복습·연습 모두) */
+function ensureStats(p){
+  if(p.stats&&p.stats.ci)return p.stats;
+  const S={sets:0,perfect:0,q:0,c:0,ci:{}};
+  (p.games||[]).forEach(g=>{
+    S.sets++;if(g.correct===g.total)S.perfect++;S.q+=g.total;S.c+=g.correct;
+    const miss={};(g.missed||[]).forEach(en=>miss[en]=(miss[en]||0)+1);
+    (g.all||[]).forEach(en=>{const a=S.ci[en]||(S.ci[en]=[0,0]);a[0]++;if(miss[en])miss[en]--;else a[1]++});
+  });
+  return p.stats=S;
+}
+let statSyncT=null;
 function recordCity(city,ok){
   const p=profile();if(!p)return;
-  const s=p.cities[city.en]||{s:0,c:0};s.s++;if(ok)s.c++;p.cities[city.en]=s;saveUsers();
+  const a=ensureStats(p).ci[city.en]||(p.stats.ci[city.en]=[0,0]);a[0]++;if(ok)a[1]++;
+  /* 문제마다 서버에 보내지 않고, 잠시 모았다가 한 번에 */
+  p.pending=true;p.rev=(p.rev||0)+1;saveLocal();
+  clearTimeout(statSyncT);statSyncT=setTimeout(()=>{if(profile()===p)syncNow()},8000);
+}
+function mergeStats(a,b){
+  if(!a||!a.ci)return b||null;if(!b||!b.ci)return a;
+  const m={sets:Math.max(a.sets,b.sets),perfect:Math.max(a.perfect,b.perfect),q:Math.max(a.q,b.q),c:Math.max(a.c,b.c),ci:{}};
+  new Set([...Object.keys(a.ci),...Object.keys(b.ci)]).forEach(en=>{const x=a.ci[en]||[0,0],y=b.ci[en]||[0,0];m.ci[en]=x[0]>=y[0]?x.slice():y.slice()});
+  return m;
 }
 function answer(passed,auto){
   if(!st||st.done)return;
@@ -1244,6 +1280,7 @@ function answer(passed,auto){
   const ok=!passed&&isCorrect(val,city);
   st.busy=true;st.autoAt=auto?performance.now():0;st.answered++;if(ok)st.correct++;if(st.hint)st.hintsUsed++;
   const item={n:st.idx+1,guess:passed?"":val,city,ok,hinted:st.hint>0,passed};
+  recordCity(city,ok);
   st.history.push(item);
   /* 즐겨찾기 연속 정답 (퀴즈·복습만, 힌트 없이 맞혀야 인정). 퀴즈 중에는 아무 표시도 하지 않음 */
   if(st.kind!=="practice"){const f=favOf(city.en);if(f){f.streak=(ok&&!item.hinted)?(f.streak||0)+1:0;saveUsers()}}
@@ -1336,8 +1373,9 @@ function finish(){
   renderTop();renderHint();$("passBtn").disabled=true;
   const p=profile();
   if(p){
+    {const S=ensureStats(p);S.sets++;if(st.correct===st.queue.length)S.perfect++;S.q+=st.queue.length;S.c+=st.correct}
     p.games.push({t:Date.now(),kind:st.kind,scope:st.scope,hard:!!st.hard,diff:st.diff||(st.hard?"hard":"normal"),total:st.queue.length,correct:st.correct,hints:st.hintsUsed,missed:st.history.filter(h=>!h.ok).map(h=>h.city.en),all:st.history.map(h=>h.city.en)});
-    if(p.games.length>200)p.games=p.games.slice(-200);
+    slimGames(p);
     saveUsers();
   }
   setTimeout(showResult,450);
@@ -1416,17 +1454,24 @@ function confetti(){
 
 /* ---------- Records ---------- */
 /* 자주 틀린 도시는 '끝낸 세트' 기록에서만 계산 (세트를 지우면 함께 사라짐) */
+/* 자주 틀린 도시: 누적 도시별 숫자로 계산 (처음부터 전부 기준) */
 function weakCities(){
   const p=profile();if(!p)return[];
-  const agg={};
-  p.games.forEach(g=>{
-    const miss={};(g.missed||[]).forEach(en=>miss[en]=(miss[en]||0)+1);
-    const all=g.all||g.missed||[];
-    all.forEach(en=>{const a=agg[en]||(agg[en]={s:0,w:0});a.s++;if(miss[en]){a.w++;miss[en]--}});
-  });
-  return Object.entries(agg).filter(([en,a])=>CITY_BY_EN[en]&&a.w>0)
-    .sort((a,b)=>b[1].w-a[1].w||(b[1].w/b[1].s)-(a[1].w/a[1].s))
-    .map(([en,a])=>({city:CITY_BY_EN[en],wrong:a.w,seen:a.s}));
+  return Object.entries(ensureStats(p).ci).map(([en,a])=>[en,a[0],a[0]-a[1]])
+    .filter(([en,,w])=>CITY_BY_EN[en]&&w>0)
+    .sort((a,b)=>b[2]-a[2]||(b[2]/b[1])-(a[2]/a[1]))
+    .map(([en,seen,wrong])=>({city:CITY_BY_EN[en],wrong,seen}));
+}
+/* 세트 기록 다이어트: 최근 10세트만 도시 목록까지 보관(눌러서 자세히 보기·복습),
+   그 이전 세트는 날짜·범위·점수만. 목록은 최근 200세트까지 (누적 통계는 따로 끝없이 셈) */
+const GAME_DETAIL=10,GAME_MAX=200;
+function slimGames(p){
+  ensureStats(p);   /* 도시 목록을 지우기 전에 누적 통계로 옮겨 둠 */
+  let changed=false;
+  if(p.games.length>GAME_MAX){p.games=p.games.slice(-GAME_MAX);changed=true}
+  const cut=p.games.length-GAME_DETAIL;
+  for(let k=0;k<cut;k++){const g=p.games[k];if(g.all||g.missed){delete g.all;delete g.missed;changed=true}}
+  return changed;
 }
 function fmtDate(t){const d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
 let recLimit=10;
@@ -1438,10 +1483,33 @@ function openRecords(keep){
   $("recSwitch").textContent="로그인";$("recSwitch").hidden=!!me;
   if(!p){html='<p>로그인하면 게임 결과, 자주 틀린 도시, 즐겨찾기가 저장돼요.</p>';$("recReview").hidden=true}
   else{
-    const g=p.games,tot=g.reduce((a,x)=>a+x.total,0),cor=g.reduce((a,x)=>a+x.correct,0),perfect=g.filter(x=>x.correct===x.total).length;
-    html='<div class="stats"><div><b>'+g.length+'</b><span>끝낸 세트</span></div><div><b>'+(tot?Math.round(cor/tot*100)+"%":"–")+'</b><span>평균 정답률</span></div><div><b>'+perfect+'</b><span>전부 맞힌 세트</span></div></div>';
+    const g=p.games,S=ensureStats(p),fmtN=n=>n.toLocaleString("ko-KR");
+    let solved=0;const reg={};
+    Object.entries(S.ci).forEach(([en,a])=>{solved+=a[0];const c=CITY_BY_EN[en];if(!c)return;const r=reg[c.region]||(reg[c.region]=[0,0]);r[0]+=a[0];r[1]+=a[1]});
+    const pool=CITIES.filter(c=>inDiff(c)),learned=pool.filter(c=>S.ci[c.en]&&S.ci[c.en][1]>0).length;
+    /* 전문 권역: 20문제 이상 푼 권역 중 정답률 1등 (같으면 더 많이 푼 쪽) */
+    const best=Object.entries(reg).filter(([,r])=>r[0]>=20).sort((a,b)=>b[1][1]/b[1][0]-a[1][1]/a[1][0]||b[1][0]-a[1][0])[0];
+    html='<div class="stats">'
+      +'<div><b>'+fmtN(S.sets)+'</b><span>끝낸 세트</span></div>'
+      +'<div><b>'+(S.q?Math.round(S.c/S.q*100)+"%":"–")+'</b><span>평균 정답률</span></div>'
+      +'<div><b>'+fmtN(S.perfect)+'</b><span>전부 맞힌 세트</span></div>'
+      +'<div><b>'+fmtN(solved)+'</b><span>푼 문제 수</span></div>'
+      +'<div><b>'+learned+'<small> / '+pool.length+'</small></b><span>외운 도시 · '+esc(modeOf(diff).label)+'</span></div>'
+      +(best?'<div><b class="txt">'+esc(REGION_NAME[best[0]]||best[0])+'</b><span>전문 권역 · '+Math.round(best[1][1]/best[1][0]*100)+'%</span></div>'
+            :'<div><b>–</b><span>전문 권역 (권역별 20문제부터)</span></div>')
+      +'</div>';
     html+='<h3 class="rec-h">최근 기록</h3>';
-    html+=g.length?'<ul class="rec-list" id="recGames">'+g.slice().reverse().slice(0,recLimit).map(x=>'<li><span>'+fmtDate(x.t)+' <span class="muted">'+esc(x.scope)+'</span>'+(x.hard?'<span class="hard-badge">HARD</span>':x.diff==="easy"?'<span class="easy-badge">EASY</span>':(x.diff&&x.diff!=="normal"&&MODES[x.diff])?'<span class="mode-badge">'+esc(MODES[x.diff].label)+'</span>':'')+'</span><span class="right"><span class="r'+(x.correct===x.total?" perfect":"")+'">'+x.correct+" / "+x.total+'</span><button class="del" data-del="'+x.t+'" aria-label="이 기록 삭제">삭제</button></span></li>').join("")+'</ul>'+(g.length>recLimit?'<button class="ghost more-btn" id="recMore">더 보기 ('+(g.length-recLimit)+'개 남음)</button>':''):'<p class="muted">아직 끝낸 세트가 없어요. 퀴즈를 한 세트 끝내면 여기에 쌓여요.</p>';
+    if(slimGames(p))saveUsers();
+    const detailOf=x=>{
+      if(!x.all)return"";
+      const miss={};(x.missed||[]).forEach(en=>miss[en]=(miss[en]||0)+1);
+      const chips=x.all.map(en=>{const c=CITY_BY_EN[en];if(!c)return"";const bad=miss[en]>0;if(bad)miss[en]--;
+        return '<span class="rd'+(bad?" bad":"")+'">'+(bad?"✕ ":"✓ ")+esc(c.en)+' <small>'+esc(c.ko)+"</small></span>"}).join("");
+      const wrong=[...new Set(x.missed||[])].filter(en=>CITY_BY_EN[en]).length;
+      return '<li class="rec-detail" data-detail="'+x.t+'" hidden><div class="rd-wrap">'+chips+"</div>"
+        +(wrong?'<button class="ghost rd-retry" data-retry="'+x.t+'">틀린 도시 다시 풀기 ('+wrong+")</button>":'<p class="muted rd-perfect">이 세트는 전부 맞혔어요!</p>')+"</li>";
+    };
+    html+=g.length?'<ul class="rec-list" id="recGames">'+g.slice().reverse().slice(0,recLimit).map(x=>'<li'+(x.all?' class="has-detail" data-open="'+x.t+'" role="button" tabindex="0" aria-expanded="false"':"")+'><span>'+(x.all?'<span class="rd-chev" aria-hidden="true">▸</span>':"")+fmtDate(x.t)+' <span class="muted">'+esc(x.scope)+'</span>'+(x.hard?'<span class="hard-badge">HARD</span>':x.diff==="easy"?'<span class="easy-badge">EASY</span>':(x.diff&&x.diff!=="normal"&&MODES[x.diff])?'<span class="mode-badge">'+esc(MODES[x.diff].label)+'</span>':'')+'</span><span class="right"><span class="r'+(x.correct===x.total?" perfect":"")+'">'+x.correct+" / "+x.total+'</span><button class="del" data-del="'+x.t+'" aria-label="이 기록 삭제">삭제</button></span></li>'+detailOf(x)).join("")+'</ul>'+(g.length>recLimit?'<button class="ghost more-btn" id="recMore">더 보기 ('+(g.length-recLimit)+'개 남음)</button>':''):'<p class="muted">아직 끝낸 세트가 없어요. 퀴즈를 한 세트 끝내면 여기에 쌓여요.</p>';
     const fl=Object.entries(favs()).filter(([en])=>CITY_BY_EN[en]).sort((a,b)=>(b[1].t||0)-(a[1].t||0));
     html+='<div class="set-head"><h3 class="rec-h">즐겨찾기 ('+fl.length+')</h3>'+(fl.length?'<button class="toggle-all strong" id="favReview">즐겨찾기 복습</button>':"")+"</div>";
     html+=fl.length?'<ul class="rec-list fav-list">'+fl.slice(0,favLimit).map(([en,f])=>{const c=CITY_BY_EN[en];return '<li><button class="fav-row" data-memo="'+esc(en)+'"><b>'+esc(c.en)+"</b> "+esc(c.ko)+'<span class="memo-prev">'+(f.memo?"📝 "+esc(f.memo):"메모 쓰기")+"</span></button>"+starBtn(en)+"</li>"}).join("")+"</ul>"+(fl.length>favLimit?'<button class="ghost more-btn" id="favMore">더 보기 ('+(fl.length-favLimit)+'개 남음)</button>':""):'<p class="muted">아직 즐겨찾기한 도시가 없어요. 세트 결과 화면이나 연습 모드 정답 화면에서 ☆를 눌러 담아 보세요.</p>';
@@ -1476,15 +1544,31 @@ $("recBody").addEventListener("click",e=>{
   const p=profile();if(!p)return;
   if(e.target.closest("#recMore")){recLimit+=10;openRecords(true);return}
   if(e.target.closest("#favMore")){favLimit+=10;openRecords(true);return}
+  const rt=e.target.closest("[data-retry]");
+  if(rt){const g=p.games.find(x=>x.t===+rt.dataset.retry);if(!g)return;
+    const list=shuffle([...new Set(g.missed||[])].filter(en=>CITY_BY_EN[en]).map(en=>CITY_BY_EN[en]));
+    closeM("recScrim");setTimeout(()=>startGame("review",list,{label:"세트 복습"}),250);return}
+  const op=e.target.closest("[data-open]");
+  if(op&&!e.target.closest("[data-del]")){
+    const d=$("recBody").querySelector('[data-detail="'+op.dataset.open+'"]');if(!d)return;
+    const open=d.hidden;d.hidden=!open;op.classList.toggle("open",open);op.setAttribute("aria-expanded",String(open));
+    if(open&&d.animate&&!calmMotion.matches)d.animate([{opacity:0,transform:"translateY(-4px)"},{opacity:1,transform:"none"}],{duration:280,easing:"cubic-bezier(.22,1,.36,1)"});
+    return}
   if(e.target.closest("#favReview")){const list=shuffle(Object.keys(favs()).filter(en=>CITY_BY_EN[en]).map(en=>CITY_BY_EN[en])).slice(0,20);closeM("recScrim");setTimeout(()=>startGame("review",list,{fav:true,label:"즐겨찾기 복습"}),250);return}
   const d=e.target.closest("[data-del]");
   if(d){
     const t=+d.dataset.del,g=p.games.find(x=>x.t===t);if(!g)return;
     confirmM(fmtDate(g.t)+" "+g.scope+" 세트 ("+g.correct+" / "+g.total+") 기록을 삭제해요. 되돌릴 수 없어요.","삭제",()=>{
+      const S=ensureStats(p);
+      S.sets=Math.max(0,S.sets-1);if(g.correct===g.total)S.perfect=Math.max(0,S.perfect-1);
+      S.q=Math.max(0,S.q-g.total);S.c=Math.max(0,S.c-g.correct);
+      const miss={};(g.missed||[]).forEach(en=>miss[en]=(miss[en]||0)+1);
+      (g.all||[]).forEach(en=>{const a=S.ci[en];if(!a)return;a[0]=Math.max(0,a[0]-1);if(miss[en])miss[en]--;else a[1]=Math.max(0,a[1]-1)});
       p.games=p.games.filter(x=>x.t!==t);saveUsers();openRecords(true);
     });
   }
 });
+$("recBody").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.matches("[data-open]")){e.preventDefault();e.target.click()}});
 $("recSwitch").onclick=()=>{closeM("recScrim");setTimeout(openLogin,200)};
 
 /* ---------- Login (Google, Firebase Auth) ---------- */
