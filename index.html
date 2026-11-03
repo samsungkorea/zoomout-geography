@@ -1162,7 +1162,8 @@ document.addEventListener("pointerdown",e=>{lastPointer=e.pointerType||"mouse"},
 document.addEventListener("pointerdown",e=>{
   if(e.pointerType==="mouse"||document.body.classList.contains("kb"))return;
   const a=document.getElementById("answer");
-  if(a&&document.activeElement===a&&!e.target.closest("#answerBox"))a.blur();
+  /* 입력과 함께 쓰는 버튼(Enter·Pass·Hint·확대·축소)을 누를 땐 키보드 유지 */
+  if(a&&document.activeElement===a&&!e.target.closest("#answerBox,#enterBtn,#passBtn,#hintBtn,#zIn,#zOut"))a.blur();
 },true);
 const fine=()=>lastPointer==="mouse"&&matchMedia("(hover:hover) and (pointer:fine)").matches&&!matchMedia("(pointer:coarse)").matches;
 
@@ -1935,6 +1936,23 @@ $("listBody").addEventListener("click",e=>{
 ["listBtn"].forEach(id=>$(id).addEventListener("mousedown",e=>{if(document.activeElement===$("answer"))e.preventDefault()}));
 /* 버튼을 눌러도 입력창 포커스(키보드)가 유지되게 */
 ["enterBtn","passBtn","hintBtn","zIn","zOut"].forEach(id=>{const keep=e=>{if(document.activeElement===$("answer"))e.preventDefault()};$(id).addEventListener("mousedown",keep);$(id).addEventListener("pointerdown",keep)});
+/* iPad·아이폰 사파리: 위 방법으로는 키보드가 내려가서, 손을 뗄 때 기본 동작(포커스 이동)을 막고 버튼을 직접 눌러 줌.
+   손가락이 움직였으면(스크롤) 누른 걸로 치지 않음 */
+let ansBlurAt=0;$("answer").addEventListener("blur",()=>{ansBlurAt=performance.now()});
+const typing=()=>document.activeElement===$("answer")||performance.now()-ansBlurAt<400;
+["enterBtn","passBtn","hintBtn","listBtn","zIn","zOut"].forEach(id=>{
+  const b=$(id);let sx=0,sy=0,live=false;
+  b.addEventListener("touchstart",e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;live=typing();if(live)e.preventDefault()},{passive:false});
+  b.addEventListener("touchend",e=>{
+    if(!live)return;live=false;
+    const t=e.changedTouches[0];
+    if(Math.abs(t.clientX-sx)>10||Math.abs(t.clientY-sy)>10)return;
+    e.preventDefault();
+    /* 손을 떼는 순간(사용자 동작 안)에 입력창으로 포커스를 돌려줘야 iOS가 키보드를 유지함 */
+    const inp=$("answer");if(document.activeElement!==inp)inp.focus({preventScroll:true});
+    if(!b.disabled)b.click();
+  },{passive:false});
+});
 $("tutBtn").onclick=openSettings;
 $("themeSeg").addEventListener("click",e=>{const b=e.target.closest("[data-theme-opt]");if(!b)return;setTheme(b.dataset.themeOpt)});
 $("setSwitch").onclick=()=>{closeM("tutScrim");if(me)logout();else setTimeout(openLogin,200)};
