@@ -887,6 +887,8 @@ function isCorrect(input,city){
   }
   return false;
 }
+/* 자동 제출용: 오타 허용 없이 정확히 같을 때만 */
+function isExact(input,city){const g=norm(input);return !!g&&[city.en,city.ko,...city.aliases].some(c=>norm(c)===g)}
 const CHO="ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
 function choseong(ch){const code=ch.charCodeAt(0)-0xac00;return code>=0&&code<11172?CHO[Math.floor(code/588)]:ch}
 
@@ -1210,14 +1212,14 @@ function recordCity(city,ok){
   const p=profile();if(!p)return;
   const s=p.cities[city.en]||{s:0,c:0};s.s++;if(ok)s.c++;p.cities[city.en]=s;saveUsers();
 }
-function answer(passed){
+function answer(passed,auto){
   if(!st||st.done)return;
   if(browsing){exitBrowse();return}
-  if(st.busy){advance();return}
+  if(st.busy){if(st.autoAt&&performance.now()-st.autoAt<900)return;advance();return}
   const inp=$("answer"),val=inp.value.trim(),city=st.queue[st.idx];
   if(!passed&&!val){const b=$("answerBox");b.classList.remove("shake");void b.offsetWidth;b.classList.add("shake");return}
   const ok=!passed&&isCorrect(val,city);
-  st.busy=true;st.answered++;if(ok)st.correct++;if(st.hint)st.hintsUsed++;
+  st.busy=true;st.autoAt=auto?performance.now():0;st.answered++;if(ok)st.correct++;if(st.hint)st.hintsUsed++;
   const item={n:st.idx+1,guess:passed?"":val,city,ok,hinted:st.hint>0,passed};
   st.history.push(item);
   /* 즐겨찾기 연속 정답 (퀴즈·복습만, 힌트 없이 맞혀야 인정). 퀴즈 중에는 아무 표시도 하지 않음 */
@@ -1281,6 +1283,7 @@ function waitPhoto(m,fn){
 function advance(){
   clearTimeout(revealTimer);
   if(!st||!st.busy)return;
+  if(st.autoAt){$("answer").value="";st.autoAt=0}
   st.busy=false;st.idx++;st.hint=0;
   if(document.body.classList.contains("zoomable")){document.body.classList.remove("zoomable");setPinch(st.kind==="practice")}
   $("reveal").classList.remove("show");
@@ -1837,6 +1840,13 @@ setTimeout(()=>{if((me||store.get("mq-guest",false))&&!store.get("mq-coach",fals
 
 /* ---------- Wire up ---------- */
 $("enterBtn").onclick=()=>answer(false);
+/* 정답을 정확히 다 치면 Enter 없이 바로 제출 (한글 입력 중이어도) */
+$("answer").addEventListener("input",()=>{
+  const inp=$("answer");
+  if(!st||st.done||browsing)return;
+  if(st.busy){if(st.autoAt)inp.value="";return}   /* 자동 제출 직후 남은 한글 조합 글자 지우기 */
+  if(isExact(inp.value,st.queue[st.idx]))answer(false,true);
+});
 $("answer").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();answer(false)}});
 document.addEventListener("keydown",e=>{if(e.key==="Enter"&&browsing&&document.activeElement!==$("answer")&&!document.querySelector(".scrim.open")){e.preventDefault();exitBrowse();return}if(e.key==="Enter"&&st&&st.busy&&document.activeElement!==$("answer")&&!document.querySelector(".scrim.open")){e.preventDefault();advance()}});
 $("passBtn").onclick=()=>answer(true);
