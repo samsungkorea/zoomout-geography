@@ -458,6 +458,13 @@ footer .link{padding:13px calc(var(--lg) / 2 + 2px);margin:-7px calc(var(--lg) /
   .left-actions,.right-actions{gap:var(--lg)}
 }
 
+/* 결과 화면: 체크 표시와 도시 이름을 한 줄 가운데에 맞춤 */
+.set-list .sl{display:flex;align-items:center;gap:8px;min-width:0}
+.set-list .sl .mark{vertical-align:0}
+/* 키보드 모드에서도 하단 버튼 간격·누르는 영역을 똑같이 */
+body.kb .right-actions{gap:var(--lg)}
+body.kb footer .link{padding:13px calc(var(--lg) / 2 + 2px);margin:-9px calc(var(--lg) / -2)}
+
 /* 기록 목록의 가장자리 흐림은 내용이 넘칠 때만 (안내 문구·첫 항목 왼쪽이 잘려 보이던 문제) */
 .history:not(.over),#history:not(.over){mask-image:none;-webkit-mask-image:none}
 
@@ -1421,7 +1428,7 @@ function showResult(){
   /* 이번 세트에 나온 도시 전체 + 별 */
   if(me){
     html+='<div class="set-head"><h3 class="rec-h">이번 세트 도시</h3>'+(missed.length?'<button class="toggle-all" id="favMissed">틀린 도시 모두 담기 ☆</button>':"")+"</div>";
-    html+='<ul class="rec-list set-list">'+st.history.map(h=>'<li><span><span class="mark '+(h.ok?"ok":"bad")+'">'+(h.ok?"✓":"✕")+"</span> <b>"+esc(h.city.en)+"</b> "+esc(h.city.ko)+' <span class="muted">'+esc(h.city.cKo)+"</span></span>"+starBtn(h.city.en)+"</li>").join("")+"</ul>";
+    html+='<ul class="rec-list set-list">'+st.history.map(h=>'<li><span class="sl"><span class="mark '+(h.ok?"ok":"bad")+'">'+(h.ok?"✓":"✕")+'</span><span class="nm"><b>'+esc(h.city.en)+"</b> "+esc(h.city.ko)+' <span class="muted">'+esc(h.city.cKo)+"</span></span></span>"+starBtn(h.city.en)+"</li>").join("")+"</ul>";
   }else{
     if(missed.length)html+='<ul class="missed">'+missed.map(m=>"<li><b>"+esc(m.city.en)+"</b> "+esc(m.city.ko)+' <span class="muted">'+esc(m.city.cKo)+"</span></li>").join("")+"</ul>";
     html+='<p class="muted">로그인하면 이 결과가 기록에 저장되고, 즐겨찾기도 쓸 수 있어요.</p>';
