@@ -1499,7 +1499,11 @@ async function onAuth(user){
   if(!user){
     if(me){me=null;meInfo=null;store.set("mq-uid",null);updateUser();updateScope()}
     if(first){
-      if(!store.get("mq-guest",false))setTimeout(openLogin,300);
+      /* 처음 온 사람: 튜토리얼 먼저 → 끝나거나 건너뛰면 그때 로그인 안내 */
+      if(!store.get("mq-guest",false)){
+        if(!store.get("mq-coach",false))setTimeout(()=>startCoach(()=>{if(!me&&!store.get("mq-guest",false))setTimeout(openLogin,380)}),300);
+        else setTimeout(openLogin,300);
+      }
       else maybeCoach(300);
     }
     return;
@@ -1815,10 +1819,10 @@ function coachGo(i,first){
     requestAnimationFrame(()=>body.classList.remove("out"));
   },calmMotion.matches?0:170);
 }
-function startCoach(){
+function startCoach(after){
   if(coach)return;
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
-  coach={i:0,cur:{x:innerWidth/2,y:innerHeight/2,w:0,h:0,r:0},raf:0,tm:0};
+  coach={i:0,cur:{x:innerWidth/2,y:innerHeight/2,w:0,h:0,r:0},raf:0,tm:0,after:typeof after==="function"?after:null};
   pushNav({zo:"coach"});
   const c=$("coach");c.setAttribute("aria-hidden","false");
   coachGo(0,true);
@@ -1827,17 +1831,18 @@ function startCoach(){
 }
 function endCoach(skipped,fromPop){
   if(!coach)return;
-  const i=coach.i;cancelAnimationFrame(coach.raf);clearTimeout(coach.tm);coach=null;
+  const i=coach.i,after=coach.after;cancelAnimationFrame(coach.raf);clearTimeout(coach.tm);coach=null;
   store.set("mq-coach",true);
   if(!fromPop)popNavIf(h=>h.zo==="coach");
   const c=$("coach");c.classList.remove("on");c.setAttribute("aria-hidden","true");
   track("tutorial_complete",{skipped:!!skipped,step:i+1});
+  if(after){after();return}
   if(!skipped&&fine())setTimeout(()=>$("answer").focus(),400);
 }
 $("coachNext").onclick=()=>{if(!coach)return;if(coach.i>=COACH.length-1)endCoach(false);else coachGo(coach.i+1)};
 $("coachPrev").onclick=()=>{if(coach)coachGo(coach.i-1)};
 $("coachSkip").onclick=()=>endCoach(true);
-$("coachReplay").onclick=()=>{closeM("tutScrim");setTimeout(startCoach,380)};
+$("coachReplay").onclick=()=>{closeM("tutScrim");setTimeout(()=>startCoach(),380)};
 window.addEventListener("keydown",e=>{
   if(!coach)return;
   if(e.key==="ArrowRight"||e.key==="Enter"){e.preventDefault();$("coachNext").click()}
