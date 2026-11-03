@@ -1165,6 +1165,7 @@ const revealZoomV=v=>v.rz!=null?v.rz:Math.max(4,Math.round(v.zoom)-4);
 function placeReveal(qi){const v=qView(qi);if(v)mapC.setView([v.lat,v.lng],revealZoomV(v),{animate:false})}
 function clearInline(el){el.style.transition="none";el.style.transform="";el.style.opacity="";el.style.filter="";el.style.pointerEvents="";void el.offsetWidth;el.style.transition=""}
 function playRevealZoom(city){
+  lmResetNear();
   /* 줌아웃 화면의 사진이 다 받아진 뒤에 출발 (회색 빈칸이 보이며 끊기는 것 방지). 최대 0.8초까지만 기다림 */
   const v0=qView(st.idx)||{lat:city.lat,lng:city.lng,zoom:city.zoom},z0=revealZoomV(v0);
   const c00=mapC.getCenter();
@@ -1372,46 +1373,75 @@ function updateLmZoom(){
   const b=$("lmZoom"),c=st&&st.queue[st.idx];
   const show=!!(c&&c.lm&&st.hint>=1&&!st.busy&&!st.done&&!browsing);
   b.hidden=!show;if(!show)return;
+  b.disabled=!!st.lmBusy;
   b.innerHTML=st.lmFar?LMZ_IN:LMZ_OUT;
   b.setAttribute("aria-label",st.lmFar?"가까이 보기":"멀리 보기");b.title=st.lmFar?"가까이 보기":"멀리 보기";
 }
 /* 가까이 ↔ 멀리: 지도 자체를 줌하지 않고, 미리 받아 둔 다른 지도 한 장(E)과 겹쳐서 크기만 바꿔 보여 줌.
    사진이 이미 다 받아져 있어서 회색 빈칸 없이 매끄럽고, 끝나면 실제 지도를 그 단계로 맞춘 뒤 겹을 치움 */
-const LMZ_DUR=1.5,LMZ_EASE="cubic-bezier(.4,0,.2,1)";   /* 가까이↔멀리: 0.85초 → 1.5초로 느리게 */
-function lmZoomTo(far){
-  const v=qView(st.idx);if(!v)return;
-  if(st.lmAnimEnd)st.lmAnimEnd();
-  st.lmFar=far;updateLmZoom();
-  const a=layers[active],mA=maps[active],zNear=v.zoom,zFar=v.zoom-2,zTo=far?zFar:zNear;
-  if(calmMotion.matches){mA.setView([v.lat,v.lng],zTo,{animate:false});return}
-  /* E에 목표 화면을 깔아 둠 (멀리는 미리 받아 둔 상태, 가까이는 처음 화면이라 이미 받아져 있음) */
-  mapE.setView([v.lat,v.lng],zTo,{animate:false});
-  [a,layerE].forEach(l=>{l.style.transition="none"});
-  layerE.classList.remove("off");layerE.style.opacity=far?"1":"0";layerE.style.filter="none";
-  layerE.style.transform="scale("+(far?4:.25)+")";
-  if(far){a.style.zIndex="3";layerE.style.zIndex="2"}else{a.style.zIndex="2";layerE.style.zIndex="3"}
-  void layerE.offsetWidth;
-  const D=LMZ_DUR+"s "+LMZ_EASE;
-  layerE.style.transition="transform "+D+(far?"":",opacity .45s ease");
-  a.style.transition="transform "+D+(far?",opacity .35s ease "+(LMZ_DUR-.35)+"s":"");
-  layerE.style.transform="scale(1)";if(!far)layerE.style.opacity="1";
-  a.style.transform="scale("+(far?.25:4)+")";if(far)a.style.opacity="0";
-  let done=false,t1=null,t2=null;
-  const finish=()=>{if(done)return;done=true;clearTimeout(t1);clearTimeout(t2);st.lmAnimEnd=null;
-    mA.setView([v.lat,v.lng],zTo,{animate:false});
-    let tidied=false;
-    const tidy=()=>{if(tidied)return;tidied=true;
-      if(!revealing)clearInline(a);a.style.zIndex="";   /* 정답 화면 연출이 시작됐으면 그쪽 움직임은 건드리지 않음 */
-      clearInline(layerE);layerE.style.zIndex="";layerE.classList.add("off");
-      if(st&&!st.lmAnimEnd)mapE.setView([v.lat,v.lng],zFar,{animate:false})};
-    /* 실제 지도의 사진이 다 깔린 뒤에 겹을 치워서 깜빡임 없게 (최대 0.7초) */
-    const t0=performance.now(),check=()=>{if(mA._zoReady||performance.now()-t0>700)tidy();else requestAnimationFrame(check)};
-    requestAnimationFrame(check);
-  };
-  st.lmAnimEnd=finish;
-  t1=setTimeout(finish,LMZ_DUR*1000+40);
+const LMZ_DUR=1.5,LMZ_EASE="cubic-bezier(.4,0,.2,1)";   /* 가까이↔멀리 1.5초 */
+/* 가까이(a)와 멀리(layerE) 두 사진은 이미 받아져 있고, 멀리 쪽 지도는 항상 멀리 단계에 고정돼 있음.
+   그래서 전환 중에도 지도 줌을 바꾸지 않고 겹만 움직여서 회색 빈칸이 생기지 않음 */
+function lmSetFinal(far){
+  const a=layers[active];
+  [a,layerE].forEach(l=>{l.style.transition="none";l.style.zIndex=""});
+  if(far){
+    a.style.transform="scale(.25)";a.style.opacity="0";
+    layerE.classList.remove("off");layerE.style.transform="scale(1)";layerE.style.opacity="1";layerE.style.filter="none";
+  }else{
+    a.style.transform="scale(1)";a.style.opacity="1";
+    layerE.style.transform="";layerE.style.opacity="";layerE.style.filter="";layerE.classList.add("off");
+  }
+  void a.offsetWidth;
+  [a,layerE].forEach(l=>{l.style.transition=""});
 }
-$("lmZoom").onclick=()=>{if(st&&!st.busy)lmZoomTo(!st.lmFar)};
+/* 정답 화면·다음 문제로 넘어갈 때: 전환이 진행 중이면 끝내고 가까운 화면으로 되돌림 */
+function lmResetNear(){
+  if(!st||(!st.lmFar&&!st.lmBusy))return;
+  clearTimeout(st.lmTm);st.lmTm=null;
+  st.lmFar=false;st.lmBusy=false;
+  lmSetFinal(false);
+  updateLmZoom();
+}
+function lmZoomTo(far){
+  if(!st||st.lmBusy)return;                 /* 전환 중에는 누를 수 없음 */
+  if(!!st.lmFar===far)return;
+  const a=layers[active];
+  st.lmFar=far;
+  if(calmMotion.matches){lmSetFinal(far);updateLmZoom();return}
+  st.lmBusy=true;updateLmZoom();
+  layerE.classList.remove("off");
+  [a,layerE].forEach(l=>{l.style.transition="none";l.style.zIndex="";l.style.filter="none"});
+  if(far){   /* 가까이 → 멀리: 가까운 사진을 줄이고, 멀리 사진은 4배 크기에서 제자리로 */
+    a.style.zIndex="3";layerE.style.zIndex="2";
+    a.style.transform="scale(1)";a.style.opacity="1";
+    layerE.style.transform="scale(4)";layerE.style.opacity="1";
+  }else{     /* 멀리 → 가까이: 멀리 사진을 키우며 사라지고, 가까운 사진이 제자리로 */
+    layerE.style.zIndex="3";a.style.zIndex="2";
+    layerE.style.transform="scale(1)";layerE.style.opacity="1";
+    a.style.transform="scale(.25)";a.style.opacity="0";
+  }
+  void a.offsetWidth;
+  const D=LMZ_DUR+"s "+LMZ_EASE,fadeDelay=(LMZ_DUR-.4)+"s";
+  if(far){
+    a.style.transition="transform "+D+",opacity .4s ease "+fadeDelay;
+    layerE.style.transition="transform "+D;
+    a.style.transform="scale(.25)";a.style.opacity="0";
+    layerE.style.transform="scale(1)";
+  }else{
+    layerE.style.transition="transform "+D+",opacity .4s ease "+fadeDelay;
+    a.style.transition="transform "+D+",opacity .4s ease";
+    layerE.style.transform="scale(4)";layerE.style.opacity="0";
+    a.style.transform="scale(1)";a.style.opacity="1";
+  }
+  const far2=far;
+  clearTimeout(st.lmTm);
+  st.lmTm=setTimeout(()=>{
+    if(!st)return;
+    st.lmTm=null;st.lmBusy=false;lmSetFinal(far2);updateLmZoom();
+  },LMZ_DUR*1000+60);
+}
+$("lmZoom").onclick=()=>{if(st&&!st.busy&&!st.lmBusy)lmZoomTo(!st.lmFar)};
 function renderHint(){
   const c=st.queue[st.idx],box=$("hintLine"),prevN=+box.dataset.n||0;box.innerHTML="";
   const first=c?"<div>첫 글자 <b>"+esc(c.en[0])+"…</b> · <b>"+choseong(c.ko[0])+"…</b> ("+c.en.length+"글자)</div>":"";
@@ -1473,7 +1503,7 @@ function answer(passed,auto){
   if(!st||st.done)return;
   if(browsing){exitBrowse();return}
   if(st.busy){advance();return}
-  if(st.lmAnimEnd)st.lmAnimEnd();
+  lmResetNear();
   const inp=$("answer"),val=inp.value.trim(),city=st.queue[st.idx];
   if(!passed&&!val){const b=$("answerBox");b.classList.remove("shake");void b.offsetWidth;b.classList.add("shake");return}
   const ok=!passed&&isCorrect(val,city);
@@ -1544,7 +1574,7 @@ function advance(){
   clearTimeout(revealTimer);
   if(!st||!st.busy)return;
   if(st.autoAt){$("answer").value="";st.autoAt=0}
-  if(st.lmAnimEnd)st.lmAnimEnd();
+  lmResetNear();
   st.busy=false;st.idx++;st.hint=0;st.lmFar=false;
   if(document.body.classList.contains("zoomable")){document.body.classList.remove("zoomable");setPinch(st.kind==="practice")}
   $("reveal").classList.remove("show");
