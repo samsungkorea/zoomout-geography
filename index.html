@@ -1264,7 +1264,7 @@ let diff=store.get("mq-diff",null);if(!MODES[diff]||MODES[diff].soon)diff=store.
 const inDiff=(c,d)=>{const m=modeOf(d||diff);return m.pool?m.pool(c):false};
 /* 지금 모드에서 나오는 문제 전체 (LANDMARK는 랜드마크 목록, 나머지는 도시) */
 const modeItems=d=>modeOf(d||diff).landmark?LM_Q:CITIES.filter(c=>inDiff(c,d));
-function poolFor(regs,favOnly){const f=favOnly?favs():null;if(favOnly&&!f)favOnly=false;return modeItems().filter(c=>regs.has(c.region)&&(!favOnly||f[c.en]))}
+function poolFor(regs,favOnly){const f=favOnly?favs():null;if(favOnly&&!f)favOnly=false;return modeItems().filter(c=>regs.has(c.region)&&(!favOnly||f[keyOf(c)]))}
 /* ---------- Favorites ---------- */
 function favs(){const p=profile();if(!p)return null;if(!p.favs)p.favs={};return p.favs}
 function favOf(en){const f=favs();return f?f[en]||null:null}
@@ -1288,7 +1288,7 @@ document.addEventListener("click",e=>{
 },true);
 let memoCity=null;
 function openMemo(en){
-  const c=CITY_BY_EN[en],f=favOf(en);if(!c||!f)return;
+  const c=itemOf(en),f=favOf(en);if(!c||!f)return;
   memoCity=en;$("memoTitle").textContent=c.en+" "+c.ko;$("memoText").value=f.memo||"";
   openM("memoScrim");setTimeout(()=>$("memoText").focus(),60);
 }
@@ -1453,17 +1453,17 @@ function lmZoomTo(far){
 $("lmZoom").onclick=()=>{if(st&&!st.busy&&!st.lmBusy)lmZoomTo(!st.lmFar)};
 function renderHint(){
   const c=st.queue[st.idx],box=$("hintLine"),prevN=+box.dataset.n||0;box.innerHTML="";
-  const first=c?"<div>첫 글자 <b>"+esc(c.en[0])+"…</b> · <b>"+choseong(c.ko[0])+"…</b> ("+c.en.length+"글자)</div>":"";
+  const first=c?"<div>첫 글자 <b>"+choseong(c.ko[0])+"…</b> · <b>"+esc(c.en[0])+"…</b> ("+c.en.length+"글자)</div>":"";
   if(c&&c.lm){
     /* LANDMARK: ① 한 발 물러나기 ② 나라 ③ 랜드마크 이름 ④ 첫 글자 */
     /* 연습 모드는 한 발 물러나기가 없음 (지도는 어차피 + − 로 확대·축소) */
     const pr=st.kind==="practice",base=pr?0:1;
     if(!pr&&st.hint>=1)box.insertAdjacentHTML("beforeend","<div>주변이 보이게 <b>한 발 물러났어요</b></div>");
-    if(st.hint>=base+1)box.insertAdjacentHTML("beforeend","<div>나라 <b>"+esc(c.cEn)+"</b> · "+esc(c.cKo)+"</div>");
+    if(st.hint>=base+1)box.insertAdjacentHTML("beforeend","<div>나라 <b>"+esc(c.cKo)+"</b> · "+esc(c.cEn)+"</div>");
     if(st.hint>=base+2)box.insertAdjacentHTML("beforeend","<div>랜드마크 <b>"+esc(c.lmKo)+"</b> · "+esc(c.lmEn)+"</div>");
     if(st.hint>=base+3)box.insertAdjacentHTML("beforeend",first);
   }else{
-  if(c&&st.hint>=1)box.insertAdjacentHTML("beforeend","<div>나라 <b>"+esc(c.cEn)+"</b> · "+esc(c.cKo)+"</div>");
+  if(c&&st.hint>=1)box.insertAdjacentHTML("beforeend","<div>나라 <b>"+esc(c.cKo)+"</b> · "+esc(c.cEn)+"</div>");
   if(c&&st.hint>=2)box.insertAdjacentHTML("beforeend",first);
   if(c&&st.hint>=3)box.insertAdjacentHTML("beforeend","<div>이제 지도를 <b>확대·축소</b>할 수 있어요</div>");
   }
@@ -1523,7 +1523,7 @@ function answer(passed,auto){
   if(st.kind!=="practice")recordCity(city,ok);
   st.history.push(item);
   /* 즐겨찾기 연속 정답 (퀴즈·복습만, 힌트 없이 맞혀야 인정). 퀴즈 중에는 아무 표시도 하지 않음 */
-  if(st.kind!=="practice"){const f=favOf(city.en);if(f){f.streak=(ok&&!item.hinted)?(f.streak||0)+1:0;saveUsers()}}
+  if(st.kind!=="practice"){const f=favOf(keyOf(city));if(f){f.streak=(ok&&!item.hinted)?(f.streak||0)+1:0;saveUsers()}}
   $("answerBox").classList.add(ok?"ok":"bad");inp.value="";
   $("passBtn").disabled=true;$("hintBtn").disabled=true;
   addHistory(item);renderTop();updateLmZoom();
@@ -1540,9 +1540,9 @@ function renderReveal(){
   const city=it.city,ok=it.ok;
   const verdict=ok?(it.hinted?"정답 (힌트 사용)":"정답"):(it.passed?(st.kind==="practice"?"정답 보기":"패스"):"아쉬워요");
   const study=(st.kind==="practice"||st.fav)&&!!me;
-  const f=study?favOf(city.en):null;
-  let h='<span class="verdict '+(ok?"ok":"bad")+'">'+verdict+'</span><div class="city">'+esc(city.en)+"<span>"+esc(city.ko)+"</span>"+(study?starBtn(city.en):"")+'</div><div class="country">'+esc(city.cEn)+" · "+esc(city.cKo)+"</div>"+(city.lm?'<div class="lm-line">'+esc(city.lmKo)+" · "+esc(city.lmEn)+"</div>":"");
-  if(f)h+='<div class="memo-line">'+(f.memo?'<span class="memo-txt">📝 '+esc(f.memo)+"</span>":"")+'<button class="memo-btn" data-memo="'+esc(city.en)+'">'+(f.memo?"메모 고치기":"📝 메모 쓰기")+"</button></div>";
+  const f=study?favOf(keyOf(city)):null;
+  let h='<span class="verdict '+(ok?"ok":"bad")+'">'+verdict+'</span><div class="city">'+esc(city.ko)+"<span>"+esc(city.en)+"</span>"+(study?starBtn(keyOf(city)):"")+'</div><div class="country">'+esc(city.cKo)+" · "+esc(city.cEn)+"</div>"+(city.lm?'<div class="lm-line">'+esc(city.lmKo)+" · "+esc(city.lmEn)+"</div>":"");
+  if(f)h+='<div class="memo-line">'+(f.memo?'<span class="memo-txt">📝 '+esc(f.memo)+"</span>":"")+'<button class="memo-btn" data-memo="'+esc(keyOf(city))+'">'+(f.memo?"메모 고치기":"📝 메모 쓰기")+"</button></div>";
   if(st.kind==="practice")h+='<div class="next">Enter를 누르면 다음 문제로 넘어가요</div>';
   $("reveal").innerHTML=h;
 }
@@ -1550,8 +1550,8 @@ function addHistory(it){
   const li=document.createElement("li");li.className=it.ok?"is-ok":"is-ng";
   const mark='<span class="mark '+(it.ok?"ok":"bad")+'">'+(it.ok?"✓":"✕")+"</span>";
   const hint=it.hinted?'<span class="hinted" title="힌트 사용">💡</span>':"";
-  if(it.ok)li.innerHTML='<span class="n">#'+it.n+'</span><span class="g">'+esc(it.city.en)+"</span>"+mark+hint+'<span class="sub">'+esc(it.city.ko)+"</span>";
-  else li.innerHTML='<span class="n">#'+it.n+'</span><span class="g">'+(it.passed?"패스":esc(it.guess))+"</span>"+mark+hint+'<span class="sub">('+esc(it.city.en)+")</span>";
+  if(it.ok)li.innerHTML='<span class="n">#'+it.n+'</span><span class="g">'+esc(it.city.ko)+"</span>"+mark+hint+'<span class="sub">'+esc(it.city.en)+"</span>";
+  else li.innerHTML='<span class="n">#'+it.n+'</span><span class="g">'+(it.passed?"패스":esc(it.guess))+"</span>"+mark+hint+'<span class="sub">('+esc(it.city.ko)+' '+esc(it.city.en)+")</span>";
   const h=$("history"),olds=[...h.children];
   const fits=h.scrollHeight<=h.clientHeight+1&&h.scrollWidth<=h.clientWidth+1;
   const before=fits?olds.map(e=>e.getBoundingClientRect()):null;
@@ -1614,8 +1614,8 @@ function finish(){
   renderTop();renderHint();$("passBtn").disabled=true;
   const p=profile();
   if(p){
-    {const S=st.diff==="landmark"?ensureLmStats(p):ensureStats(p);S.sets++;if(st.correct===st.queue.length)S.perfect++;S.q+=st.queue.length;S.c+=st.correct}
-    p.games.push({t:Date.now(),kind:st.kind,scope:st.scope,hard:!!st.hard,diff:st.diff||(st.hard?"hard":"normal"),total:st.queue.length,correct:st.correct,hints:st.hintsUsed,missed:st.history.filter(h=>!h.ok).map(h=>keyOf(h.city)),all:st.history.map(h=>keyOf(h.city))});
+    {const S=(st.queue.length&&st.queue.every(q=>q.lm))?ensureLmStats(p):ensureStats(p);S.sets++;if(st.correct===st.queue.length)S.perfect++;S.q+=st.queue.length;S.c+=st.correct}
+    p.games.push({t:Date.now(),kind:st.kind,scope:st.scope,hard:!!st.hard,diff:(st.queue.length&&st.queue.every(q=>q.lm))?"landmark":(st.diff||(st.hard?"hard":"normal")),total:st.queue.length,correct:st.correct,hints:st.hintsUsed,missed:st.history.filter(h=>!h.ok).map(h=>keyOf(h.city)),all:st.history.map(h=>keyOf(h.city))});
     slimGames(p);
     saveUsers();
   }
@@ -1646,16 +1646,16 @@ function showResult(){
   }
   /* 3번 연속 맞힌 즐겨찾기 도시 */
   const seen={},grad=[];
-  st.history.forEach(h=>{const f=favOf(h.city.en);if(f&&(f.streak||0)>=3&&!seen[h.city.en]){seen[h.city.en]=1;grad.push(h.city)}});
+  st.history.forEach(h=>{const f=favOf(keyOf(h.city));if(f&&(f.streak||0)>=3&&!seen[keyOf(h.city)]){seen[keyOf(h.city)]=1;grad.push(h.city)}});
   if(grad.length){
     html+='<div class="grad" id="gradBox"><p class="grad-q">3번 연속 맞힌 도시예요. 즐겨찾기에서 뺄까요?</p>'+
-      grad.map(c=>'<label class="grad-row"><input type="checkbox" data-grad="'+esc(c.en)+'" checked> <b>'+esc(c.en)+"</b> "+esc(c.ko)+"</label>").join("")+
+      grad.map(c=>'<label class="grad-row"><input type="checkbox" data-grad="'+esc(keyOf(c))+'" checked> <b>'+esc(c.ko)+"</b> "+esc(c.en)+"</label>").join("")+
       '<div class="grad-btns"><button class="ghost" id="gradKeep">그대로 두기</button><button class="primary" id="gradDo">즐겨찾기에서 빼기</button></div></div>';
   }
   /* 이번 세트에 나온 도시 전체 + 별 */
   if(me){
     html+='<div class="set-head"><h3 class="rec-h">이번 세트 도시</h3>'+(missed.length?'<button class="toggle-all" id="favMissed">틀린 도시 모두 담기 ☆</button>':"")+"</div>";
-    html+='<ul class="rec-list set-list">'+st.history.map(h=>'<li><span class="sl"><span class="mark '+(h.ok?"ok":"bad")+'">'+(h.ok?"✓":"✕")+'</span><span class="nm"><b>'+esc(h.city.en)+"</b> "+esc(h.city.ko)+' <span class="muted">'+esc(h.city.lm?h.city.lmKo:h.city.cKo)+"</span></span></span>"+starBtn(h.city.en)+"</li>").join("")+"</ul>";
+    html+='<ul class="rec-list set-list">'+st.history.map(h=>'<li><span class="sl"><span class="mark '+(h.ok?"ok":"bad")+'">'+(h.ok?"✓":"✕")+'</span><span class="nm"><b>'+esc(h.city.ko)+"</b> "+esc(h.city.en)+' <span class="muted">'+esc(h.city.lm?h.city.lmKo:h.city.cKo)+"</span></span></span>"+starBtn(keyOf(h.city))+"</li>").join("")+"</ul>";
   }else{
     if(missed.length)html+='<ul class="missed">'+missed.map(m=>"<li><b>"+esc(m.city.en)+"</b> "+esc(m.city.ko)+' <span class="muted">'+esc(m.city.cKo)+"</span></li>").join("")+"</ul>";
     html+='<p class="muted">로그인하면 이 결과가 기록에 저장되고, 즐겨찾기도 쓸 수 있어요.</p>';
@@ -1666,7 +1666,7 @@ function showResult(){
   openM("resScrim");
 }
 $("resBody").addEventListener("click",e=>{
-  if(e.target.closest("#favMissed")){lastMissed.forEach(c=>{if(!favOf(c.en))setFav(c.en,true)});const b=$("favMissed");b.textContent="담았어요 ★";b.disabled=true;return}
+  if(e.target.closest("#favMissed")){lastMissed.forEach(c=>{if(!favOf(keyOf(c)))setFav(keyOf(c),true)});const b=$("favMissed");b.textContent="담았어요 ★";b.disabled=true;return}
   const keep=e.target.closest("#gradKeep"),go=e.target.closest("#gradDo");
   if(!keep&&!go)return;
   const box=$("gradBox"),rows=[...box.querySelectorAll("[data-grad]")];let removed=0;
@@ -1778,18 +1778,22 @@ function openRecords(keep){
       if(!x.all)return"";
       const miss={};(x.missed||[]).forEach(en=>miss[en]=(miss[en]||0)+1);
       const chips=x.all.map(en=>{const c=itemOf(en);if(!c)return"";const bad=miss[en]>0;if(bad)miss[en]--;
-        return '<span class="rd'+(bad?" bad":"")+'">'+(bad?"✕ ":"✓ ")+(c.lm?esc(c.lmKo)+' <small>'+esc(c.ko)+"</small>":esc(c.en)+' <small>'+esc(c.ko)+"</small>")+"</span>"}).join("");
+        return '<span class="rd'+(bad?" bad":"")+'">'+(bad?"✕ ":"✓ ")+(c.lm?esc(c.lmKo)+' <small>'+esc(c.ko)+"</small>":esc(c.ko)+' <small>'+esc(c.en)+"</small>")+"</span>"}).join("");
       const wrong=[...new Set(x.missed||[])].filter(en=>itemOf(en)).length;
       return '<li class="rec-detail" data-detail="'+x.t+'" hidden><div class="rd-wrap">'+chips+"</div>"
         +(wrong?'<button class="ghost rd-retry" data-retry="'+x.t+'">틀린 도시 다시 풀기 ('+wrong+")</button>":'<p class="muted rd-perfect">이 세트는 전부 맞혔어요!</p>')+"</li>";
     };
     html+=g.length?'<ul class="rec-list" id="recGames">'+g.slice().reverse().slice(0,recLimit).map(x=>'<li'+(x.all?' class="has-detail" data-open="'+x.t+'" role="button" tabindex="0" aria-expanded="false"':"")+'><span>'+(x.all?'<span class="rd-chev" aria-hidden="true">▸</span>':"")+fmtDate(x.t)+' <span class="muted">'+esc(x.scope)+'</span>'+(x.hard?'<span class="hard-badge">HARD</span>':x.diff==="landmark"?'<span class="lm-badge">LANDMARK</span>':x.diff==="easy"?'<span class="easy-badge">EASY</span>':(x.diff&&x.diff!=="normal"&&MODES[x.diff])?'<span class="mode-badge">'+esc(MODES[x.diff].label)+'</span>':'')+'</span><span class="right"><span class="r'+(x.correct===x.total?" perfect":"")+'">'+x.correct+" / "+x.total+'</span><button class="del" data-del="'+x.t+'" aria-label="이 기록 삭제">삭제</button></span></li>'+detailOf(x)).join("")+'</ul>'+(g.length>recLimit?'<button class="ghost more-btn" id="recMore">더 보기 ('+(g.length-recLimit)+'개 남음)</button>':''):'<p class="muted">아직 끝낸 세트가 없어요. 퀴즈를 한 세트 끝내면 여기에 쌓여요.</p>';
-    const fl=Object.entries(favs()).filter(([en])=>CITY_BY_EN[en]).sort((a,b)=>(b[1].t||0)-(a[1].t||0));
-    html+='<div class="set-head"><h3 class="rec-h">즐겨찾기 ('+fl.length+')</h3>'+(fl.length?'<button class="toggle-all strong" id="favReview">즐겨찾기 복습</button>':"")+"</div>";
-    html+=fl.length?'<ul class="rec-list fav-list">'+fl.slice(0,favLimit).map(([en,f])=>{const c=CITY_BY_EN[en];return '<li><button class="fav-row" data-memo="'+esc(en)+'"><b>'+esc(c.en)+"</b> "+esc(c.ko)+'<span class="memo-prev">'+(f.memo?"📝 "+esc(f.memo):"메모 쓰기")+"</span></button>"+starBtn(en)+"</li>"}).join("")+"</ul>"+(fl.length>favLimit?'<button class="ghost more-btn" id="favMore">더 보기 ('+(fl.length-favLimit)+'개 남음)</button>':""):'<p class="muted">아직 즐겨찾기한 도시가 없어요. 세트 결과 화면이나 연습 모드 정답 화면에서 ☆를 눌러 담아 보세요.</p>';
+    const favAll=Object.entries(favs()||{}).filter(([k])=>!!itemOf(k)).sort((a,b)=>(b[1].t||0)-(a[1].t||0));
+    const favCity=favAll.filter(([k])=>!k.startsWith("lm:")),favLm=favAll.filter(([k])=>k.startsWith("lm:"));
+    const favBlock=(list,title,reviewId,moreId,emptyMsg)=>'<div class="set-head"><h3 class="rec-h">'+title+' ('+list.length+')</h3>'+(list.length?'<button class="toggle-all strong" id="'+reviewId+'">복습</button>':"")+"</div>"
+      +(list.length?'<ul class="rec-list fav-list">'+list.slice(0,favLimit).map(([k,f])=>{const c=itemOf(k);const name=c.lm?'<b>'+esc(c.lmKo)+"</b> "+esc(c.ko)+' <span class="muted">'+esc(c.lmEn)+"</span>":"<b>"+esc(c.ko)+"</b> "+esc(c.en);return '<li><button class="fav-row" data-memo="'+esc(k)+'">'+name+'<span class="memo-prev">'+(f.memo?"📝 "+esc(f.memo):"메모 쓰기")+"</span></button>"+starBtn(k)+"</li>"}).join("")+"</ul>"+(list.length>favLimit?'<button class="ghost more-btn" id="'+moreId+'">더 보기 ('+(list.length-favLimit)+'개 남음)</button>':""):'<p class="muted">'+emptyMsg+"</p>");
+    /* 랜드마크 관련 기록·별표·통계는 LANDMARK 모드 안에서만 보임. 일반 모드에서는 도시만 */
+    if(lmMode)html+=favBlock(favLm,"즐겨찾기 · 랜드마크","favReviewLm","favMoreLm","아직 즐겨찾기한 랜드마크가 없어요. 랜드마크 정답 화면에서 ☆를 눌러 담아 보세요.");
+    else html+=favBlock(favCity,"즐겨찾기 · 도시","favReview","favMore","아직 즐겨찾기한 도시가 없어요. 세트 결과 화면이나 연습 모드 정답 화면에서 ☆를 눌러 담아 보세요.");
     const weak=lmMode?weakLandmarks():weakCities();
     html+='<h3 class="rec-h">자주 틀린 '+(lmMode?"랜드마크":"도시")+'</h3>';
-    html+=weak.length?'<ul class="rec-list">'+weak.slice(0,10).map(w=>"<li><span><b>"+esc(w.city.lm?w.city.lmKo:w.city.en)+"</b> "+esc(w.city.ko)+'</span><span class="right"><span class="r">'+w.wrong+"번 틀림 / "+w.seen+"번 출제</span>"+starBtn(w.city.en)+"</span></li>").join("")+"</ul>":'<p class="muted">아직 틀린 도시가 없어요.</p>';
+    html+=weak.length?'<ul class="rec-list">'+weak.slice(0,10).map(w=>"<li><span><b>"+esc(w.city.lm?w.city.lmKo:w.city.ko)+"</b> "+esc(w.city.lm?w.city.ko:w.city.en)+'</span><span class="right"><span class="r">'+w.wrong+"번 틀림 / "+w.seen+"번 출제</span>"+starBtn(keyOf(w.city))+"</span></li>").join("")+"</ul>":'<p class="muted">아직 틀린 도시가 없어요.</p>';
     $("recReview").hidden=!weak.length;
     $("recReview").textContent="자주 틀린 "+(lmMode?"랜드마크":"도시")+" 복습 ("+Math.min(weak.length,20)+")";
   }
@@ -1817,7 +1821,7 @@ function removeGameStats(p,g){
 $("recBody").addEventListener("click",e=>{
   const p=profile();if(!p)return;
   if(e.target.closest("#recMore")){recLimit+=10;openRecords(true);return}
-  if(e.target.closest("#favMore")){favLimit+=10;openRecords(true);return}
+  if(e.target.closest("#favMore")||e.target.closest("#favMoreLm")){favLimit+=10;openRecords(true);return}
   const rt=e.target.closest("[data-retry]");
   if(rt){const g=p.games.find(x=>x.t===+rt.dataset.retry);if(!g)return;
     const list=shuffle([...new Set(g.missed||[])].filter(en=>itemOf(en)).map(en=>itemOf(en)));
@@ -1828,7 +1832,7 @@ $("recBody").addEventListener("click",e=>{
     const open=d.hidden;d.hidden=!open;op.classList.toggle("open",open);op.setAttribute("aria-expanded",String(open));
     if(open&&d.animate&&!calmMotion.matches)d.animate([{opacity:0,transform:"translateY(-4px)"},{opacity:1,transform:"none"}],{duration:280,easing:"cubic-bezier(.22,1,.36,1)"});
     return}
-  if(e.target.closest("#favReview")){const list=shuffle(Object.keys(favs()).filter(en=>CITY_BY_EN[en]).map(en=>CITY_BY_EN[en])).slice(0,20);closeM("recScrim");setTimeout(()=>startGame("review",list,{fav:true,label:"즐겨찾기 복습"}),250);return}
+  if(e.target.closest("#favReview")||e.target.closest("#favReviewLm")){const wantLm=!!e.target.closest("#favReviewLm");const list=shuffle(Object.keys(favs()).filter(k=>!!itemOf(k)&&k.startsWith("lm:")===wantLm).map(k=>itemOf(k))).slice(0,20);closeM("recScrim");setTimeout(()=>startGame("review",list,{fav:true,label:"즐겨찾기 복습"}),250);return}
   const d=e.target.closest("[data-del]");
   if(d){
     const t=+d.dataset.del,g=p.games.find(x=>x.t===t);if(!g)return;
@@ -1990,7 +1994,7 @@ function renderSheet(){
       c.regions.map(([id,nm])=>'<button class="chip" data-reg="'+id+'" aria-pressed="'+draft.regions.has(id)+'">'+nm+"<span>"+modeItems().filter(x=>x.region===id).length+"</span></button>").join("")+"</div>";
     box.appendChild(g);
   });
-  const fc=me?Object.keys(favs()).filter(en=>CITY_BY_EN[en]).length:0;
+  const fc=me?Object.keys(favs()).filter(en=>!!itemOf(en)&&en.startsWith("lm:")===!!modeOf(diff).landmark).length:0;
   const chip=$("favOnlyChip");chip.setAttribute("aria-pressed",String(draft.favOnly));chip.innerHTML="★ 즐겨찾기만<span>"+fc+"</span>";
   $("favNote").textContent=!me?"로그인하면 쓸 수 있어요":draft.favOnly?"선택한 권역 안의 즐겨찾기 도시만 나와요":"";
   document.querySelectorAll("#countSeg button").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.c===draft.count)));
@@ -2284,9 +2288,9 @@ function startBrowse(city){
 }
 function renderBrowse(){
   const c=browsing;if(!c)return;
-  const f=me?favOf(c.en):null;
-  let h='<span class="verdict browse">둘러보기</span><div class="city">'+esc(c.en)+"<span>"+esc(c.ko)+"</span>"+(me?starBtn(c.en):"")+'</div><div class="country">'+esc(c.cEn)+" · "+esc(c.cKo)+"</div>"+(c.lm?'<div class="lm-line">'+esc(c.lmKo)+" · "+esc(c.lmEn)+"</div>":"");
-  if(f)h+='<div class="memo-line">'+(f.memo?'<span class="memo-txt">📝 '+esc(f.memo)+"</span>":"")+'<button class="memo-btn" data-memo="'+esc(c.en)+'">'+(f.memo?"메모 고치기":"📝 메모 쓰기")+"</button></div>";
+  const f=me?favOf(keyOf(c)):null;
+  let h='<span class="verdict browse">둘러보기</span><div class="city">'+esc(c.ko)+"<span>"+esc(c.en)+"</span>"+(me?starBtn(keyOf(c)):"")+'</div><div class="country">'+esc(c.cKo)+" · "+esc(c.cEn)+"</div>"+(c.lm?'<div class="lm-line">'+esc(c.lmKo)+" · "+esc(c.lmEn)+"</div>":"");
+  if(f)h+='<div class="memo-line">'+(f.memo?'<span class="memo-txt">📝 '+esc(f.memo)+"</span>":"")+'<button class="memo-btn" data-memo="'+esc(keyOf(c))+'">'+(f.memo?"메모 고치기":"📝 메모 쓰기")+"</button></div>";
   h+='<div class="browse-btns"><button class="memo-btn" id="browseList">← 목록</button><button class="memo-btn" id="browseExit">연습으로 돌아가기</button></div>';
   $("browseCard").innerHTML=h;
 }
@@ -2310,8 +2314,8 @@ function renderList(){
     const rows=items.filter(c=>c.region===rid).sort((a,b)=>a.cKo.localeCompare(b.cKo,"ko")||a.ko.localeCompare(b.ko,"ko"));
     if(!rows.length)return;
     h+='<h3 class="rec-h">'+rn+' <span class="muted">'+rows.length+'</span></h3><ul class="rec-list city-list">'+rows.map(c=>{
-      const f=me?favOf(c.en):null;
-      return '<li><button class="list-row" data-browse="'+esc(keyOf(c))+'"><span><b>'+esc(c.lm?c.lmKo:c.en)+"</b> "+esc(c.lm?c.ko:c.ko)+(f&&f.memo?" 📝":"")+'</span><span class="muted">'+esc(c.cKo)+"</span></button>"+(me?starBtn(c.en):"")+"</li>";
+      const f=me?favOf(keyOf(c)):null;
+      return '<li><button class="list-row" data-browse="'+esc(keyOf(c))+'"><span><b>'+esc(c.lm?c.lmKo:c.ko)+"</b> "+esc(c.lm?c.ko:c.en)+(f&&f.memo?" 📝":"")+'</span><span class="muted">'+esc(c.cKo)+"</span></button>"+(me?starBtn(keyOf(c)):"")+"</li>";
     }).join("")+"</ul>";
   }));
   $("listBody").innerHTML=h||'<p class="muted">찾는 도시가 없어요.</p>';
