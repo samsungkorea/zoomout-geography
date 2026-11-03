@@ -1772,7 +1772,7 @@ function openRecords(keep){
       +(best?'<div><b class="txt">'+esc(REGION_NAME[best[0]]||best[0])+'</b><span>전문 권역 · '+Math.round(best[1][1]/best[1][0]*100)+'%</span></div>'
             :'<div><b>–</b><span>전문 권역 (권역별 '+MIN+'문제부터)</span></div>')
       +'</div>';
-    html+='<h3 class="rec-h">최근 기록'+(lmMode?' <span class="lm-badge">LANDMARK</span>':"")+'</h3>';
+    html+='<h3 class="rec-h">최근 기록</h3>';
     if(slimGames(p))saveUsers();
     const detailOf=x=>{
       if(!x.all)return"";
