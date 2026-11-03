@@ -484,6 +484,9 @@ body.practice .lm-zoom,body.zoomable .lm-zoom{top:100px}   /* 연습 모드의 +
 body.lmhint .dots{display:inline-grid;grid-template-columns:repeat(2,auto);gap:2px 3px}
 body.lmhint .dots i{width:5px;height:5px}
 body.lmhint .dots i.d3,body.lmhint .dots i.d4{display:inline-block}
+body.practice.lmhint .dots{display:inline-flex;gap:3px}
+body.practice.lmhint .dots i{width:6px;height:6px}
+body.practice.lmhint .dots i.d4{display:none}
 
 /* Quiz·Practice 스위치: 선택 표시(진한 알약 + 흰 글자)를 통째로 한 겹 위에 두고, 잘라 보이는 범위만 미끄러뜨림.
    글자가 알약 경계에서 정확히 색이 바뀌어서 중간에 흐려 보이지 않음 */
@@ -1165,7 +1168,8 @@ const revealZoomV=v=>v.rz!=null?v.rz:Math.max(4,Math.round(v.zoom)-4);
 function placeReveal(qi){const v=qView(qi);if(v)mapC.setView([v.lat,v.lng],revealZoomV(v),{animate:false})}
 function clearInline(el){el.style.transition="none";el.style.transform="";el.style.opacity="";el.style.filter="";el.style.pointerEvents="";void el.offsetWidth;el.style.transition=""}
 function playRevealZoom(city){
-  lmResetNear();
+  /* 전환 중이었다면 목표한 쪽 화면으로 바로 맞춘 뒤, 지금 보이는 화면에서 줌아웃 시작 */
+  if(st&&st.lmBusy){clearTimeout(st.lmTm);st.lmTm=null;st.lmBusy=false;lmSetFinal(!!st.lmFar);updateLmZoom()}
   /* 줌아웃 화면의 사진이 다 받아진 뒤에 출발 (회색 빈칸이 보이며 끊기는 것 방지). 최대 0.8초까지만 기다림 */
   const v0=qView(st.idx)||{lat:city.lat,lng:city.lng,zoom:city.zoom},z0=revealZoomV(v0);
   const c00=mapC.getCenter();
@@ -1178,17 +1182,20 @@ function startRevealZoom(city){
   const a=layers[active],mA=maps[active],v=qView(st.idx)||{lat:city.lat,lng:city.lng,zoom:city.zoom},z=revealZoomV(v);
   const c0=mapC.getCenter();
   if(Math.abs(mapC.getZoom()-z)>.01||Math.abs(c0.lat-v.lat)>1e-6||Math.abs(c0.lng-v.lng)>1e-6)placeReveal(st.idx);
-  const k=Math.pow(2,mA.getZoom()-z);
-  layerC.style.transition="none";a.style.transition="none";
+  /* 지금 보이는 사진이 멀리(layerE)면 그 사진에서, 가까이(a)면 그 사진에서 출발 */
+  const far=!!(st&&st.lmFar),out=far?layerE:a,zo=far?v.zoom-2:mA.getZoom();
+  const k=Math.pow(2,zo-z);
+  layerC.style.transition="none";a.style.transition="none";out.style.transition="none";
   layerC.classList.remove("off");
   layerC.style.opacity="1";layerC.style.filter="none";layerC.style.transform="scale("+k+")";
-  a.style.transform="scale(1)";a.style.pointerEvents="none";
+  out.classList.remove("off");out.style.filter="none";out.style.opacity="1";out.style.zIndex="";
+  out.style.transform="scale(1)";a.style.pointerEvents="none";
   void layerC.offsetWidth;
-  const ease="cubic-bezier(.4,0,.15,1)",dur=Math.log2(k)>4.5?3.1:2.2;   /* 조금 느리게: 랜드마크처럼 멀리 빠질 땐 더 길게 */
+  const ease="cubic-bezier(.4,0,.15,1)",dur=Math.log2(k)>4.5?2.3:1.6;   /* 정답 줌아웃: 멀리 빠질 땐 조금 더 길게 */
   layerC.style.transition="transform "+dur+"s "+ease;
-  a.style.transition="transform "+dur+"s "+ease+",opacity .5s ease "+(dur-.3)+"s";
+  out.style.transition="transform "+dur+"s "+ease+",opacity .5s ease "+(dur-.3)+"s";
   layerC.style.transform="scale(1)";
-  a.style.transform="scale("+(1/k)+")";a.style.opacity="0";
+  out.style.transform="scale("+(1/k)+")";out.style.opacity="0";
   revealing=true;viewMap=mapC;
 }
 function endReveal(){
@@ -1196,6 +1203,8 @@ function endReveal(){
   revealing=false;viewMap=null;
   layerC.style.transition="";layerC.style.transform="";layerC.style.opacity="";layerC.style.filter="";
   layerC.classList.add("off");
+  if(st){st.lmFar=false;st.lmBusy=false}
+  layerE.style.transition="";layerE.style.zIndex="";clearInline(layerE);layerE.classList.add("off");
 }
 let active=0;
 /* 같은 도시라도 매번 조금씩 다르게: 중심을 화면 폭의 최대 7~11%까지 옮기고, 확대 정도도 ±0.5 안에서 바꾼다 */
@@ -1240,8 +1249,8 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
    새 모드는 여기에 한 줄 추가하면 팝업에 나와요. group:"special"이면 아래 스페셜 칸에 들어가요.
    pool: 나올 도시 / calm: 사진이 덜 흔들림 / zoomHint: 세 번째 힌트로 확대·축소 / theme: 화면 테마 / soon: 준비 중(고를 수 없음) */
 const MODES={
-  landmark:{label:"LANDMARK",desc:"유명한 랜드마크를 크게 보여 줘요. 어느 도시인지 맞혀 보세요. 막히면 한 발 물러나서 주변을 볼 수 있어요.",landmark:true,calm:true,theme:"landmark"},
-  easy:{label:"EASY",desc:"유명한 도시만 나와요. 사진이 덜 흔들리고, 퀴즈에서는 세 번째 힌트로 지도를 확대·축소할 수 있어요.",pool:c=>!!c.easy,calm:true,zoomHint:true,theme:"easy"},
+  landmark:{label:"LANDMARK",desc:"랜드마크를 보고 어느 도시인지 맞혀요.",landmark:true,calm:true,theme:"landmark"},
+  easy:{label:"EASY",desc:"유명한 도시만 나와요. 사진이 덜 흔들려요.",pool:c=>!!c.easy,calm:true,zoomHint:true,theme:"easy"},
   normal:{label:"NORMAL",desc:"기본 모드예요. 세계 곳곳의 대도시와 주요 도시가 나와요.",pool:c=>!c.hard},
   hard:{label:"HARD",desc:"소도시까지 모두 섞여 나와요. 화면이 야간 정찰 모드로 바뀌어요.",pool:()=>true,theme:"hard"},
   capital:{label:"수도",group:"special",soon:true},
@@ -1371,7 +1380,7 @@ const LMZ_IN='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke
 const LMZ_OUT='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/></svg>';
 function updateLmZoom(){
   const b=$("lmZoom"),c=st&&st.queue[st.idx];
-  const show=!!(c&&c.lm&&st.hint>=1&&!st.busy&&!st.done&&!browsing);
+  const show=!!(c&&c.lm&&st.kind!=="practice"&&st.hint>=1&&!st.busy&&!st.done&&!browsing);
   b.hidden=!show;if(!show)return;
   b.disabled=!!st.lmBusy;
   b.innerHTML=st.lmFar?LMZ_IN:LMZ_OUT;
@@ -1379,7 +1388,7 @@ function updateLmZoom(){
 }
 /* 가까이 ↔ 멀리: 지도 자체를 줌하지 않고, 미리 받아 둔 다른 지도 한 장(E)과 겹쳐서 크기만 바꿔 보여 줌.
    사진이 이미 다 받아져 있어서 회색 빈칸 없이 매끄럽고, 끝나면 실제 지도를 그 단계로 맞춘 뒤 겹을 치움 */
-const LMZ_DUR=1.5,LMZ_EASE="cubic-bezier(.4,0,.2,1)";   /* 가까이↔멀리 1.5초 */
+const LMZ_DUR=0.8,LMZ_EASE="cubic-bezier(.4,0,.2,1)";   /* 가까이↔멀리 0.8초 */
 /* 가까이(a)와 멀리(layerE) 두 사진은 이미 받아져 있고, 멀리 쪽 지도는 항상 멀리 단계에 고정돼 있음.
    그래서 전환 중에도 지도 줌을 바꾸지 않고 겹만 움직여서 회색 빈칸이 생기지 않음 */
 function lmSetFinal(far){
@@ -1447,17 +1456,19 @@ function renderHint(){
   const first=c?"<div>첫 글자 <b>"+esc(c.en[0])+"…</b> · <b>"+choseong(c.ko[0])+"…</b> ("+c.en.length+"글자)</div>":"";
   if(c&&c.lm){
     /* LANDMARK: ① 한 발 물러나기 ② 나라 ③ 랜드마크 이름 ④ 첫 글자 */
-    if(st.hint>=1)box.insertAdjacentHTML("beforeend","<div>주변이 보이게 <b>한 발 물러났어요</b></div>");
-    if(st.hint>=2)box.insertAdjacentHTML("beforeend","<div>나라 <b>"+esc(c.cEn)+"</b> · "+esc(c.cKo)+"</div>");
-    if(st.hint>=3)box.insertAdjacentHTML("beforeend","<div>랜드마크 <b>"+esc(c.lmKo)+"</b> · "+esc(c.lmEn)+"</div>");
-    if(st.hint>=4)box.insertAdjacentHTML("beforeend",first);
+    /* 연습 모드는 한 발 물러나기가 없음 (지도는 어차피 + − 로 확대·축소) */
+    const pr=st.kind==="practice",base=pr?0:1;
+    if(!pr&&st.hint>=1)box.insertAdjacentHTML("beforeend","<div>주변이 보이게 <b>한 발 물러났어요</b></div>");
+    if(st.hint>=base+1)box.insertAdjacentHTML("beforeend","<div>나라 <b>"+esc(c.cEn)+"</b> · "+esc(c.cKo)+"</div>");
+    if(st.hint>=base+2)box.insertAdjacentHTML("beforeend","<div>랜드마크 <b>"+esc(c.lmKo)+"</b> · "+esc(c.lmEn)+"</div>");
+    if(st.hint>=base+3)box.insertAdjacentHTML("beforeend",first);
   }else{
   if(c&&st.hint>=1)box.insertAdjacentHTML("beforeend","<div>나라 <b>"+esc(c.cEn)+"</b> · "+esc(c.cKo)+"</div>");
   if(c&&st.hint>=2)box.insertAdjacentHTML("beforeend",first);
   if(c&&st.hint>=3)box.insertAdjacentHTML("beforeend","<div>이제 지도를 <b>확대·축소</b>할 수 있어요</div>");
   }
   [...box.children].forEach((d,i)=>{if(i<prevN)d.classList.add("still")});box.dataset.n=box.children.length;
-  if(c&&c.lm&&st.hint===0)preloadFar(st.idx);
+  if(c&&c.lm&&st.hint===0&&st.kind!=="practice")preloadFar(st.idx);
   if(c&&st.hint===0&&!revealing)placeReveal(st.idx);
   updateLmZoom();
   document.querySelectorAll("#hintBtn .dots i").forEach((d,i)=>d.classList.toggle("on",i<st.hint));
@@ -1503,7 +1514,6 @@ function answer(passed,auto){
   if(!st||st.done)return;
   if(browsing){exitBrowse();return}
   if(st.busy){advance();return}
-  lmResetNear();
   const inp=$("answer"),val=inp.value.trim(),city=st.queue[st.idx];
   if(!passed&&!val){const b=$("answerBox");b.classList.remove("shake");void b.offsetWidth;b.classList.add("shake");return}
   const ok=!passed&&isCorrect(val,city);
@@ -1522,7 +1532,7 @@ function answer(passed,auto){
   $("reveal").classList.add("show");
   playRevealZoom(city);
   /* 퀴즈는 줌아웃(1.6초)을 다 본 뒤 자동으로 넘어감. 기다리기 싫으면 Enter로 바로 다음 */
-  if(st.kind!=="practice")revealTimer=setTimeout(advance,(ok?3300:4200)+(city.lm?900:0));
+  if(st.kind!=="practice")revealTimer=setTimeout(advance,(ok?2700:3600)+(city.lm?900:0));
 }
 /* 정답 카드: 별·메모는 연습 모드와 즐겨찾기 복습에서만 */
 function renderReveal(){
@@ -1612,12 +1622,12 @@ function finish(){
   setTimeout(showResult,450);
 }
 /* EASY 퀴즈·복습은 힌트 3개 (세 번째 = 확대·축소). 연습 모드는 원래 확대·축소가 되니 2개 */
-const maxHint=()=>{if(!st)return 2;const c=st.queue[st.idx];if(c&&c.lm)return 4;return modeOf(st.diff).zoomHint&&st.kind!=="practice"?3:2};
+const maxHint=()=>{if(!st)return 2;const c=st.queue[st.idx];if(c&&c.lm)return st.kind==="practice"?3:4;return modeOf(st.diff).zoomHint&&st.kind!=="practice"?3:2};
 function useHint(){
   if(!st||st.busy||st.done||st.hint>=maxHint())return;
   st.hint++;
   const cq=st.queue[st.idx];
-  if(cq&&cq.lm){if(st.hint===1)lmZoomTo(true)}
+  if(cq&&cq.lm){if(st.hint===1&&st.kind!=="practice")lmZoomTo(true)}
   else if(st.hint===3){document.body.classList.add("zoomable");setPinch(true)}
   renderHint();if(fine())$("answer").focus();
 }
@@ -2080,6 +2090,12 @@ document.querySelectorAll(".scrim").forEach(s=>s.addEventListener("click",e=>{if
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const o=document.querySelector(".scrim.open");if(o&&o.id!=="loginScrim"){if(o.id==="cfmScrim")cfmAction=null;closeM(o.id)}}});
 
 /* ---------- 튜토리얼 (처음 한 번 + 설정에서 다시 보기) ---------- */
+const COACH_NOTICE=[
+  {t:"새 모드가 추가됐어요 🎉",d:["LANDMARK 모드가 생겼어요.","랜드마크 사진을 보고 어느 도시인지 맞히는 모드예요."]},
+  {el:"hardBtn",t:"모드에서 골라 보세요",d:["모드 버튼을 누르면 맨 위에 LANDMARK가 있어요.","막히면 힌트로 한 발 물러나 주변을 보고, 가까이 보기 버튼으로 다시 가까이 볼 수 있어요."]},
+  {t:"즐겁게 플레이하세요!",d:["기존 모드는 그대로 있어요. LANDMARK 기록은 따로 쌓여요."],last:true}
+];
+let coachSteps=null;
 const COACH=[
   {t:"반가워요! 👋",d:["ZoomOut은 라벨 없는 위성 사진만 보고 세계 도시를 맞히는 퀴즈예요.","1분이면 다 알려 드릴게요."]},
   {el:"mapBox",pad:4,t:"이 사진은 어느 도시일까요?",d:["도시 이름도, 지명도 없어요. 강과 해안선, 공항, 도로 모양이 단서예요.","퀴즈에서는 지도가 움직이지 않아요."]},
@@ -2157,7 +2173,7 @@ function coachPlace(R,snap){
   if(snap){void card.offsetWidth;card.classList.remove("snap")}
 }
 function coachFill(i){
-  const st=COACH[i],n=COACH.length;
+  const st=coachSteps[i],n=coachSteps.length;
   $("coachTitle").textContent=st.t;
   const lines=st.d.slice();if(st.pc&&fine())lines.push(st.pc);
   $("coachText").innerHTML=lines.map(l=>"<p>"+esc(l)+"</p>").join("");
@@ -2166,9 +2182,9 @@ function coachFill(i){
   const nx=$("coachNext");nx.classList.toggle("go",!!st.last);nx.textContent=st.last?"시작하기":"›";nx.setAttribute("aria-label",st.last?"시작하기":"다음");
 }
 function coachGo(i,first){
-  if(!coach||i<0||i>=COACH.length)return;
+  if(!coach||i<0||i>=coachSteps.length)return;
   coach.i=i;
-  const to=coachTarget(COACH[i]),body=$("coachBody");
+  const to=coachTarget(coachSteps[i]),body=$("coachBody");
   if(first){coachFill(i);coach.cur=to;coachPaint(to);coachPlace(to,true);return}
   coachTween(to,620);
   body.classList.add("out");
@@ -2179,10 +2195,11 @@ function coachGo(i,first){
     requestAnimationFrame(()=>body.classList.remove("out"));
   },calmMotion.matches?0:170);
 }
-function startCoach(after){
+function startCoach(after,steps,kind){
   if(coach)return;
+  coachSteps=steps||COACH;
   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
-  coach={i:0,cur:{x:innerWidth/2,y:innerHeight/2,w:0,h:0,r:0},raf:0,tm:0,after:typeof after==="function"?after:null};
+  coach={i:0,cur:{x:innerWidth/2,y:innerHeight/2,w:0,h:0,r:0},raf:0,tm:0,kind:kind||"main",after:typeof after==="function"?after:null};
   pushNav({zo:"coach"});
   const c=$("coach");c.setAttribute("aria-hidden","false");
   coachGo(0,true);
@@ -2191,15 +2208,15 @@ function startCoach(after){
 }
 function endCoach(skipped,fromPop){
   if(!coach)return;
-  const i=coach.i,after=coach.after;cancelAnimationFrame(coach.raf);clearTimeout(coach.tm);coach=null;
-  store.set("mq-coach",true);
+  const i=coach.i,after=coach.after,kind=coach.kind;cancelAnimationFrame(coach.raf);clearTimeout(coach.tm);coach=null;
+  if(kind==="notice"){store.set("mq-lm-notice",true)}else{store.set("mq-coach",true);store.set("mq-lm-notice",true)}
   if(!fromPop)popNavIf(h=>h.zo==="coach");
   const c=$("coach");c.classList.remove("on");c.setAttribute("aria-hidden","true");
-  track("tutorial_complete",{skipped:!!skipped,step:i+1});
+  track(kind==="notice"?"notice_complete":"tutorial_complete",{skipped:!!skipped,step:i+1});
   if(after){after();return}
   if(!skipped&&fine())setTimeout(()=>$("answer").focus(),400);
 }
-$("coachNext").onclick=()=>{if(!coach)return;if(coach.i>=COACH.length-1)endCoach(false);else coachGo(coach.i+1)};
+$("coachNext").onclick=()=>{if(!coach)return;if(coach.i>=coachSteps.length-1)endCoach(false);else coachGo(coach.i+1)};
 $("coachPrev").onclick=()=>{if(coach)coachGo(coach.i-1)};
 $("coachSkip").onclick=()=>endCoach(true);
 $("coachReplay").onclick=()=>{closeM("tutScrim");setTimeout(()=>startCoach(),380)};
@@ -2210,7 +2227,16 @@ window.addEventListener("keydown",e=>{
   else if(e.key==="Escape"){e.preventDefault();endCoach(true)}
   e.stopImmediatePropagation();
 },true);
-window.addEventListener("resize",()=>{if(!coach)return;const R=coachTarget(COACH[coach.i]);cancelAnimationFrame(coach.raf);coach.cur=R;coachPaint(R);coachPlace(R,true)});
+window.addEventListener("resize",()=>{if(!coach)return;const R=coachTarget(coachSteps[coach.i]);cancelAnimationFrame(coach.raf);coach.cur=R;coachPaint(R);coachPlace(R,true)});
+/* 기존 유저: 튜토리얼은 이미 본 상태일 때, 랜드마크 추가 안내를 최초 1회 (다른 창이 떠 있지 않을 때) */
+const lmNoticeT=setInterval(()=>{
+  if(store.get("mq-lm-notice",false)){clearInterval(lmNoticeT);return}
+  if(!store.get("mq-coach",false)||coach)return;
+  if(document.querySelector(".scrim.open")||browsing)return;
+  if(!me&&!store.get("mq-guest",false))return;
+  clearInterval(lmNoticeT);
+  startCoach(null,COACH_NOTICE,"notice");
+},1500);
 /* 예전에 접속한 적 있는 사람도 한 번은 보도록: 로그인 창 등이 떠 있지 않을 때 시작 */
 setTimeout(()=>{if((me||store.get("mq-guest",false))&&!store.get("mq-coach",false))maybeCoach(0)},2500);
 
