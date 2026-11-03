@@ -1494,7 +1494,7 @@ function openRecords(keep){
       +'<div><b>'+(S.q?Math.round(S.c/S.q*100)+"%":"–")+'</b><span>평균 정답률</span></div>'
       +'<div><b>'+fmtN(S.perfect)+'</b><span>전부 맞힌 세트</span></div>'
       +'<div><b>'+fmtN(solved)+'</b><span>푼 문제 수</span></div>'
-      +'<div><b>'+learned+'<small> / '+pool.length+'</small></b><span>외운 도시 · '+esc(modeOf(diff).label)+'</span></div>'
+      +'<div><b>'+learned+'<small> / '+pool.length+'</small></b><span>외운 도시</span></div>'
       +(best?'<div><b class="txt">'+esc(REGION_NAME[best[0]]||best[0])+'</b><span>전문 권역 · '+Math.round(best[1][1]/best[1][0]*100)+'%</span></div>'
             :'<div><b>–</b><span>전문 권역 (권역별 20문제부터)</span></div>')
       +'</div>';
