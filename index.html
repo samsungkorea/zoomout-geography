@@ -1757,7 +1757,7 @@ function openRecords(keep){
   else{
     /* LANDMARK 모드에서 열면 랜드마크 기록·통계만, 다른 모드에서는 도시 기록·통계만 */
     const lmMode=!!modeOf(diff).landmark,MIN=lmMode?10:20;
-    const g=p.games.filter(x=>lmMode?x.diff==="landmark":x.diff!=="landmark"),S=lmMode?ensureLmStats(p):ensureStats(p),fmtN=n=>n.toLocaleString("ko-KR");
+    const g=p.games,S=lmMode?ensureLmStats(p):ensureStats(p),fmtN=n=>n.toLocaleString("ko-KR");
     let solved=0;const reg={};
     Object.entries(S.ci).forEach(([k,a])=>{solved+=a[0];const c=itemOf(k);if(!c)return;const r=reg[c.region]||(reg[c.region]=[0,0]);r[0]+=a[0];r[1]+=a[1]});
     const pool=lmMode?LM_Q:CITIES.filter(c=>inDiff(c)),learned=pool.filter(c=>S.ci[keyOf(c)]&&S.ci[keyOf(c)][1]>0).length;
