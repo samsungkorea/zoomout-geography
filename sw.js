@@ -2,7 +2,7 @@
    - 페이지(index.html): 인터넷 먼저, 안 되면 저장해 둔 것
    - 글꼴·Leaflet·Firebase 라이브러리: 저장해 둔 것 먼저
    - 위성 사진, 로그인, 기록 저장(Firestore)은 건드리지 않음 */
-const VER = "zo-v2.7.1";
+const VER = "zo-v3.5.0";
 const SHELL = ["./", "manifest.webmanifest", "favicon.png?v=2", "apple-touch-icon.png?v=2", "icon-192.png", "icon-512.png"];
 const LIB_HOSTS = ["cdnjs.cloudflare.com", "cdn.jsdelivr.net", "fonts.googleapis.com", "fonts.gstatic.com", "www.gstatic.com"];
 
