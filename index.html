@@ -258,12 +258,20 @@ footer .right-actions{justify-self:end}
 .login-input{width:100%;border:0;border-bottom:2px solid var(--ink);background:transparent;font-size:22px;font-weight:600;padding:8px 2px;outline:none}
 .login-input.shake{animation:shake .35s}
 .known{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:6px 0 4px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:12px;margin:6px 0 4px}
 .stats div{border:1.5px solid var(--line);border-radius:8px;padding:10px 12px}
 .stats b{display:block;font-family:var(--display);font-size:28px;line-height:1.1;font-variant-numeric:tabular-nums}
 .stats span{font-size:13px;color:var(--muted)}
 .stats b small{font-size:15px;font-weight:600;color:var(--muted)}
-.stats b.txt{font-size:20px;line-height:1.4;word-break:keep-all;overflow-wrap:anywhere}
+.stats b.txt{font-size:20px;line-height:1.2;word-break:keep-all;min-height:1.1em;display:flex;align-items:center}
+.stats div{min-width:0}
+.stats b{white-space:nowrap}
+.stats span{word-break:keep-all}
+@media (max-width:480px){
+  .stats{gap:8px}
+  .stats div{padding:9px 9px 8px}
+  .stats span{font-size:12px;line-height:1.35;display:block;margin-top:2px}
+}
 .rec-h{font-size:16px;margin:18px 0 8px}
 .rec-list{list-style:none;padding:0;margin:0;display:grid;gap:4px}
 .rec-list li{display:flex;justify-content:space-between;gap:12px;font-size:15px;padding:6px 0;border-bottom:1px solid var(--line)}
@@ -1280,7 +1288,8 @@ function answer(passed,auto){
   const ok=!passed&&isCorrect(val,city);
   st.busy=true;st.autoAt=auto?performance.now():0;st.answered++;if(ok)st.correct++;if(st.hint)st.hintsUsed++;
   const item={n:st.idx+1,guess:passed?"":val,city,ok,hinted:st.hint>0,passed};
-  recordCity(city,ok);
+  /* 연습은 연습: 퀴즈·복습에서 낸 답만 통계에 쌓음 */
+  if(st.kind!=="practice")recordCity(city,ok);
   st.history.push(item);
   /* 즐겨찾기 연속 정답 (퀴즈·복습만, 힌트 없이 맞혀야 인정). 퀴즈 중에는 아무 표시도 하지 않음 */
   if(st.kind!=="practice"){const f=favOf(city.en);if(f){f.streak=(ok&&!item.hinted)?(f.streak||0)+1:0;saveUsers()}}
@@ -1476,6 +1485,28 @@ function slimGames(p){
 function fmtDate(t){const d=new Date(t);return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}
 let recLimit=10;
 let favLimit=10;
+/* 전문 권역 이름이 칸 밖으로 넘치지 않게 글자 크기를 줄임 (최대 두 줄, 숫자 칸 높이 안에서) */
+function fitRegion(){
+  const nums=[...document.querySelectorAll("#recBody .stats b:not(.txt)")];if(!nums.length)return;
+  /* 숫자: 한 줄에 들어가게. 여섯 칸 모두 같은 크기로 맞춤 */
+  nums.forEach(b=>b.style.fontSize="");
+  const base=parseFloat(getComputedStyle(nums[0]).fontSize)||28;
+  let f=base;
+  while(f>14&&nums.some(b=>b.scrollWidth>b.clientWidth+1)){f--;nums.forEach(b=>b.style.fontSize=f+"px")}
+  /* 권역 이름: 숫자 줄 높이 안에서 최대 두 줄 */
+  const t=document.querySelector("#recBody .stats b.txt");if(!t)return;
+  const h=nums[0].offsetHeight,top=Math.min(20,Math.round(f*.75));
+  t.style.whiteSpace="nowrap";t.style.height=h+"px";
+  /* 1) 한 줄로 13px 이상이면 그대로 */
+  for(let k=top;k>=13;k--){t.style.fontSize=k+"px";if(t.scrollWidth<=t.clientWidth+1)return}
+  /* 2) 안 되면 두 줄로 (중·남부 / 아프리카) */
+  t.style.whiteSpace="normal";
+  for(let k=Math.min(top,15);k>=10;k--){
+    t.style.fontSize=k+"px";t.style.height=Math.max(h,Math.ceil(k*1.2*2))+"px";
+    if(t.scrollWidth<=t.clientWidth+1&&t.scrollHeight<=t.clientHeight+1)return;
+  }
+}
+window.addEventListener("resize",()=>{if($("recScrim").classList.contains("open"))fitRegion()});
 function openRecords(keep){
   if(keep!==true){recLimit=10;favLimit=10}
   const p=profile();let html;
@@ -1494,7 +1525,7 @@ function openRecords(keep){
       +'<div><b>'+(S.q?Math.round(S.c/S.q*100)+"%":"–")+'</b><span>평균 정답률</span></div>'
       +'<div><b>'+fmtN(S.perfect)+'</b><span>전부 맞힌 세트</span></div>'
       +'<div><b>'+fmtN(solved)+'</b><span>푼 문제 수</span></div>'
-      +'<div><b>'+learned+'<small> / '+pool.length+'</small></b><span>외운 도시</span></div>'
+      +'<div><b>'+learned+'</b><span>외운 도시 / '+pool.length+'</span></div>'
       +(best?'<div><b class="txt">'+esc(REGION_NAME[best[0]]||best[0])+'</b><span>전문 권역 · '+Math.round(best[1][1]/best[1][0]*100)+'%</span></div>'
             :'<div><b>–</b><span>전문 권역 (권역별 20문제부터)</span></div>')
       +'</div>';
@@ -1519,7 +1550,7 @@ function openRecords(keep){
     $("recReview").hidden=!weak.length;
     $("recReview").textContent="자주 틀린 도시 복습 ("+Math.min(weak.length,20)+")";
   }
-  $("recBody").innerHTML=(me?'<p class="muted sync" id="syncNote"></p>':"")+html;renderSync();if(!$("recScrim").classList.contains("open"))openM("recScrim");
+  $("recBody").innerHTML=(me?'<p class="muted sync" id="syncNote"></p>':"")+html;renderSync();fitRegion();if(!$("recScrim").classList.contains("open"))openM("recScrim");
 }
 $("recReview").onclick=()=>{const w=weakCities().slice(0,20).map(x=>x.city);closeM("recScrim");setTimeout(()=>startGame("review",shuffle(w)),250)};
 /* ---------- Delete records (with confirm) ---------- */
